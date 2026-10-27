@@ -1,23 +1,137 @@
+const i18n = {
+  ru: {
+    appTitle: "CS2 Profile Checker",
+    profileLabel: "Steam ID / Ссылка на профиль",
+    profilePlaceholder: "Введите Steam ID или ссылку...",
+    errorMsg: "Введите корректный Steam ID или URL.",
+    trackersTitle: "Трекеры",
+    noteTitle: "Заметка по игроку",
+    notePlaceholder: "Заметка по игроку (подозрение в софте, твинк...)",
+    deleteNoteBtn: "Удалить заметку",
+    exportBtn: "📥 Экспорт",
+    importBtn: "📤 Импорт",
+    viewAllNotesBtn: "📋 Все заметки",
+    settingsTitle: "Настройки",
+    langLabel: "Язык интерфейса",
+    autoPasteLabel: "Авто-вставка из буфера при открытии",
+    tagsManagerLabel: "Конструктор быстрых тегов",
+    addTagBtn: "Добавить",
+    tagNamePlaceholder: "Имя тега...",
+    allNotesTitle: "Сохраненные заметки",
+    searchPlaceholder: "Поиск по SteamID или заметке...",
+    clipboardEmpty: "Буфер обмена пуст.",
+    clipboardError: "Не удалось прочитать буфер обмена.",
+    notSteamTab: "Текущая вкладка не является страницей профиля Steam.",
+    savedStatus: "Сохранено",
+    savingStatus: "Сохранение...",
+    deletedStatus: "Удалено",
+    enterIdStatus: "Введите ID игрока",
+    importedSuccess: "Заметки успешно импортированы!",
+    importError: "Ошибка при чтении JSON файла.",
+    invalidBackup: "Неверный формат файла бэкапа.",
+    noNotesFound: "Заметки не найдены",
+    tagNameRequired: "Введите имя тега."
+  },
+  en: {
+    appTitle: "CS2 Profile Checker",
+    profileLabel: "Steam ID / Profile URL",
+    profilePlaceholder: "Enter Steam profile URL or ID...",
+    errorMsg: "Please enter a valid Steam ID or URL.",
+    trackersTitle: "Trackers",
+    noteTitle: "Player Note",
+    notePlaceholder: "Player note (suspicious, smurf...)",
+    deleteNoteBtn: "Delete Note",
+    exportBtn: "📥 Export",
+    importBtn: "📤 Import",
+    viewAllNotesBtn: "📋 All Notes",
+    settingsTitle: "Settings",
+    langLabel: "Language",
+    autoPasteLabel: "Auto-paste from clipboard on open",
+    tagsManagerLabel: "Quick Tags Manager",
+    addTagBtn: "Add",
+    tagNamePlaceholder: "Tag name...",
+    allNotesTitle: "Saved Notes",
+    searchPlaceholder: "Search by SteamID or note...",
+    clipboardEmpty: "Clipboard is empty.",
+    clipboardError: "Failed to read clipboard.",
+    notSteamTab: "Current tab is not a Steam profile page.",
+    savedStatus: "Saved",
+    savingStatus: "Saving...",
+    deletedStatus: "Deleted",
+    enterIdStatus: "Enter player ID",
+    importedSuccess: "Notes successfully imported!",
+    importError: "Error reading JSON file.",
+    invalidBackup: "Invalid backup file format.",
+    noNotesFound: "No notes found",
+    tagNameRequired: "Tag name is required."
+  }
+};
+
+const DEFAULT_TAGS = [
+  { name: "Софт", color: "danger" },
+  { name: "Токсик", color: "danger" },
+  { name: "Твинк", color: "warning" },
+  { name: "Хороший игрок", color: "success" }
+];
+
+// Storage wrapper using sync with local fallback
+const storage = {
+  get(keys, callback) {
+    if (chrome.storage.sync) {
+      chrome.storage.sync.get(keys, (res) => {
+        if (chrome.runtime.lastError) {
+          chrome.storage.local.get(keys, callback);
+        } else {
+          callback(res);
+        }
+      });
+    } else {
+      chrome.storage.local.get(keys, callback);
+    }
+  },
+  set(items, callback) {
+    if (chrome.storage.sync) {
+      chrome.storage.sync.set(items, () => {
+        if (chrome.runtime.lastError) {
+          chrome.storage.local.set(items, callback);
+        } else if (callback) {
+          callback();
+        }
+      });
+    } else {
+      chrome.storage.local.set(items, callback);
+    }
+  },
+  remove(keys, callback) {
+    if (chrome.storage.sync) {
+      chrome.storage.sync.remove(keys, () => {
+        if (chrome.runtime.lastError) {
+          chrome.storage.local.remove(keys, callback);
+        } else if (callback) {
+          callback();
+        }
+      });
+    } else {
+      chrome.storage.local.remove(keys, callback);
+    }
+  }
+};
+
 function extractSteamIdentifier(input) {
   if (!input) return null;
   input = input.trim();
   if (!input) return null;
 
-  // Check if it's a steamcommunity URL
   try {
     const url = new URL(input);
     if (url.hostname.includes('steamcommunity.com')) {
       const parts = url.pathname.split('/').filter(Boolean);
-      // Expected formats: /profiles/{steamId64} or /id/{customName}
       if (parts.length >= 2 && (parts[0] === 'profiles' || parts[0] === 'id')) {
         return parts[1];
       }
     }
-  } catch (e) {
-    // Not a valid URL, treat as raw ID or custom name string
-  }
+  } catch (e) {}
 
-  // Remove trailing slashes and return raw value
   return input.replace(/\/+$/, '');
 }
 
@@ -34,7 +148,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const playerNote = document.getElementById('playerNote');
   const noteStatus = document.getElementById('noteStatus');
   const deleteNoteBtn = document.getElementById('deleteNoteBtn');
-  const tagBtns = document.querySelectorAll('.tag-btn');
+  const tagsContainer = document.getElementById('tagsContainer');
   const exportBtn = document.getElementById('exportBtn');
   const importBtn = document.getElementById('importBtn');
   const importFileInput = document.getElementById('importFileInput');
@@ -44,7 +158,147 @@ document.addEventListener('DOMContentLoaded', async () => {
   const modalSearchInput = document.getElementById('modalSearchInput');
   const notesListContainer = document.getElementById('notesListContainer');
 
+  // Settings elements
+  const settingsBtn = document.getElementById('settingsBtn');
+  const settingsModal = document.getElementById('settingsModal');
+  const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+  const langSelect = document.getElementById('langSelect');
+  const autoPasteCheckbox = document.getElementById('autoPasteCheckbox');
+  const customTagsList = document.getElementById('customTagsList');
+  const newTagName = document.getElementById('newTagName');
+  const newTagColor = document.getElementById('newTagColor');
+  const addTagBtn = document.getElementById('addTagBtn');
+
+  let currentLang = 'ru';
+  let autoPasteEnabled = true;
+  let customTags = [...DEFAULT_TAGS];
   let debounceTimer = null;
+
+  // Load settings & apply i18n
+  storage.get(['language', 'auto_paste', 'custom_tags'], async (res) => {
+    if (res.language) currentLang = res.language;
+    if (res.auto_paste !== undefined) autoPasteEnabled = res.auto_paste;
+    if (res.custom_tags && Array.isArray(res.custom_tags)) customTags = res.custom_tags;
+
+    langSelect.value = currentLang;
+    autoPasteCheckbox.checked = autoPasteEnabled;
+
+    applyI18n(currentLang);
+    renderQuickTags();
+    renderCustomTagsSettings();
+
+    // Auto-paste if enabled
+    if (autoPasteEnabled) {
+      try {
+        const clipboardText = await navigator.clipboard.readText();
+        if (clipboardText) {
+          const cleaned = clipboardText.trim();
+          if (cleaned.includes('steamcommunity.com') || /^\d{17}$/.test(cleaned) || /^[a-zA-Z0-9_-]{3,}$/.test(cleaned)) {
+            profileInput.value = cleaned;
+            loadNoteForIdentifier(extractSteamIdentifier(cleaned));
+          }
+        }
+      } catch (err) {}
+    }
+  });
+
+  function applyI18n(lang) {
+    const dict = i18n[lang] || i18n.ru;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      if (dict[key]) {
+        el.textContent = dict[key];
+      }
+    });
+    if (dict.profilePlaceholder) profileInput.placeholder = dict.profilePlaceholder;
+    if (dict.notePlaceholder) playerNote.placeholder = dict.notePlaceholder;
+    if (dict.tagNamePlaceholder) newTagName.placeholder = dict.tagNamePlaceholder;
+    if (dict.searchPlaceholder) modalSearchInput.placeholder = dict.searchPlaceholder;
+  }
+
+  // Language change
+  langSelect.addEventListener('change', () => {
+    currentLang = langSelect.value;
+    storage.set({ language: currentLang }, () => {
+      applyI18n(currentLang);
+    });
+  });
+
+  // Auto-paste checkbox change
+  autoPasteCheckbox.addEventListener('change', () => {
+    autoPasteEnabled = autoPasteCheckbox.checked;
+    storage.set({ auto_paste: autoPasteEnabled });
+  });
+
+  // Settings modal toggle
+  settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
+  closeSettingsBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
+  settingsModal.addEventListener('click', (e) => {
+    if (e.target === settingsModal) settingsModal.classList.add('hidden');
+  });
+
+  // Render quick tags in main popup
+  function renderQuickTags() {
+    tagsContainer.innerHTML = '';
+    customTags.forEach(tag => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'tag-btn';
+      btn.setAttribute('data-color', tag.color);
+      btn.setAttribute('data-tag', tag.name);
+      btn.textContent = tag.name;
+      btn.addEventListener('click', () => {
+        const current = playerNote.value.trim();
+        playerNote.value = current ? `${current}, ${tag.name}` : tag.name;
+        playerNote.dispatchEvent(new Event('input'));
+      });
+      tagsContainer.appendChild(btn);
+    });
+  }
+
+  // Render tags in settings modal manager
+  function renderCustomTagsSettings() {
+    customTagsList.innerHTML = '';
+    customTags.forEach((tag, index) => {
+      const item = document.createElement('div');
+      item.className = 'custom-tag-item';
+      item.innerHTML = `
+        <span class="tag-badge" data-color="${tag.color}">${tag.name}</span>
+        <button type="button" class="delete-tag-btn" data-index="${index}">✕</button>
+      `;
+      customTagsList.appendChild(item);
+    });
+
+    document.querySelectorAll('.delete-tag-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.getAttribute('data-index'), 10);
+        customTags.splice(idx, 1);
+        storage.set({ custom_tags: customTags }, () => {
+          renderQuickTags();
+          renderCustomTagsSettings();
+        });
+      });
+    });
+  }
+
+  // Add new tag
+  addTagBtn.addEventListener('click', () => {
+    const name = newTagName.value.trim();
+    const color = newTagColor.value;
+    const dict = i18n[currentLang] || i18n.ru;
+
+    if (!name) {
+      alert(dict.tagNameRequired || 'Tag name is required.');
+      return;
+    }
+
+    customTags.push({ name, color });
+    newTagName.value = '';
+    storage.set({ custom_tags: customTags }, () => {
+      renderQuickTags();
+      renderCustomTagsSettings();
+    });
+  });
 
   function loadNoteForIdentifier(identifier) {
     if (!identifier) {
@@ -52,7 +306,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       noteStatus.textContent = '';
       return;
     }
-    chrome.storage.local.get([identifier], (result) => {
+    storage.get([identifier], (result) => {
       if (result && result[identifier]) {
         playerNote.value = result[identifier];
         noteStatus.textContent = '';
@@ -61,24 +315,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         noteStatus.textContent = '';
       }
     });
-  }
-
-  // Automatically read from clipboard on load if applicable
-  try {
-    const clipboardText = await navigator.clipboard.readText();
-    if (clipboardText) {
-      const cleaned = clipboardText.trim();
-      if (cleaned.includes('steamcommunity.com') || /^\d{17}$/.test(cleaned) || /^[a-zA-Z0-9_-]{3,}$/.test(cleaned)) {
-        profileInput.value = cleaned;
-      }
-    }
-  } catch (err) {
-    // Clipboard permission or access denied, ignore silently
-  }
-
-  // Load note for initial input value (if any)
-  if (profileInput.value) {
-    loadNoteForIdentifier(extractSteamIdentifier(profileInput.value));
   }
 
   // Clear input button
@@ -93,6 +329,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Manual paste from clipboard button
   pasteClipboardBtn.addEventListener('click', async () => {
+    const dict = i18n[currentLang] || i18n.ru;
     try {
       const text = await navigator.clipboard.readText();
       if (text) {
@@ -102,15 +339,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         profileInput.classList.remove('error');
         loadNoteForIdentifier(extractSteamIdentifier(cleaned));
       } else {
-        alert('Буфер обмена пуст.');
+        alert(dict.clipboardEmpty);
       }
     } catch (err) {
-      alert('Не удалось прочитать буфер обмена. Разрешите доступ в браузере.');
+      alert(dict.clipboardError);
     }
   });
 
   // Active tab URL reader
   tabUrlBtn.addEventListener('click', () => {
+    const dict = i18n[currentLang] || i18n.ru;
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs && tabs[0] && tabs[0].url) {
         const url = tabs[0].url;
@@ -120,7 +358,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           profileInput.classList.remove('error');
           loadNoteForIdentifier(extractSteamIdentifier(url));
         } else {
-          alert('Current active tab is not a Steam community profile page.');
+          alert(dict.notSteamTab);
         }
       }
     });
@@ -169,33 +407,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadNoteForIdentifier(identifier);
   });
 
-  // Quick tags handling
-  tagBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const tag = btn.getAttribute('data-tag');
-      const current = playerNote.value.trim();
-      playerNote.value = current ? `${current}, ${tag}` : tag;
-      playerNote.dispatchEvent(new Event('input'));
-    });
-  });
-
   // Note auto-save with debounce (500ms)
   playerNote.addEventListener('input', () => {
+    const dict = i18n[currentLang] || i18n.ru;
     const identifier = extractSteamIdentifier(profileInput.value);
     if (!identifier) {
-      noteStatus.textContent = 'Введите ID игрока';
+      noteStatus.textContent = dict.enterIdStatus;
       return;
     }
 
     const noteText = playerNote.value;
-    noteStatus.textContent = 'Сохранение...';
+    noteStatus.textContent = dict.savingStatus;
 
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-      chrome.storage.local.set({ [identifier]: noteText }, () => {
-        noteStatus.textContent = 'Сохранено';
+      storage.set({ [identifier]: noteText }, () => {
+        noteStatus.textContent = dict.savedStatus;
         setTimeout(() => {
-          if (noteStatus.textContent === 'Сохранено') {
+          if (noteStatus.textContent === dict.savedStatus) {
             noteStatus.textContent = '';
           }
         }, 2000);
@@ -205,6 +434,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Delete note button
   deleteNoteBtn.addEventListener('click', () => {
+    const dict = i18n[currentLang] || i18n.ru;
     const identifier = extractSteamIdentifier(profileInput.value);
     if (!identifier) {
       playerNote.value = '';
@@ -212,11 +442,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    chrome.storage.local.remove(identifier, () => {
+    storage.remove(identifier, () => {
       playerNote.value = '';
-      noteStatus.textContent = 'Удалено';
+      noteStatus.textContent = dict.deletedStatus;
       setTimeout(() => {
-        if (noteStatus.textContent === 'Удалено') {
+        if (noteStatus.textContent === dict.deletedStatus) {
           noteStatus.textContent = '';
         }
       }, 2000);
@@ -225,8 +455,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Export notes
   exportBtn.addEventListener('click', () => {
-    chrome.storage.local.get(null, (items) => {
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(items, null, 2));
+    storage.get(null, (items) => {
+      // Filter out internal settings keys from backup if desired, or export all
+      const exportData = { ...items };
+      delete exportData.custom_tags;
+      delete exportData.language;
+      delete exportData.auto_paste;
+
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
       const downloadAnchor = document.createElement('a');
       downloadAnchor.setAttribute("href", dataStr);
       downloadAnchor.setAttribute("download", "cs2_notes_backup.json");
@@ -242,6 +478,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   importFileInput.addEventListener('change', (event) => {
+    const dict = i18n[currentLang] || i18n.ru;
     const file = event.target.files[0];
     if (!file) return;
 
@@ -250,16 +487,16 @@ document.addEventListener('DOMContentLoaded', async () => {
       try {
         const importedData = JSON.parse(e.target.result);
         if (typeof importedData === 'object' && importedData !== null) {
-          chrome.storage.local.set(importedData, () => {
-            alert('Заметки успешно импортированы!');
+          storage.set(importedData, () => {
+            alert(dict.importedSuccess);
             const identifier = extractSteamIdentifier(profileInput.value);
             loadNoteForIdentifier(identifier);
           });
         } else {
-          alert('Неверный формат файла бэкапа.');
+          alert(dict.invalidBackup);
         }
       } catch (err) {
-        alert('Ошибка при чтении JSON файла.');
+        alert(dict.importError);
       }
       importFileInput.value = '';
     };
@@ -269,8 +506,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   // All Notes Viewer Modal logic
   function renderNotesList(filterQuery = '') {
     notesListContainer.innerHTML = '';
-    chrome.storage.local.get(null, (items) => {
-      const keys = Object.keys(items);
+    const dict = i18n[currentLang] || i18n.ru;
+
+    storage.get(null, (items) => {
+      // Exclude settings keys
+      const excludeKeys = ['custom_tags', 'language', 'auto_paste'];
+      const keys = Object.keys(items).filter(k => !excludeKeys.includes(k));
       const query = filterQuery.toLowerCase();
 
       const filteredKeys = keys.filter(key => {
@@ -279,7 +520,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
 
       if (filteredKeys.length === 0) {
-        notesListContainer.innerHTML = '<div class="no-notes">Заметки не найдены</div>';
+        notesListContainer.innerHTML = `<div class="no-notes">${dict.noNotesFound}</div>`;
         return;
       }
 

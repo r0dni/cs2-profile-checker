@@ -8,12 +8,16 @@
 </head>
 <body>
   <div class="container">
-    <header>
-      <h1>CS2 Profile Checker</h1>
+    <header class="app-header">
+      <div class="header-title-wrapper">
+        <img src="icons/icon48.png" class="header-logo" alt="Logo">
+        <h1 data-i18n="appTitle">CS2 Profile Checker</h1>
+      </div>
+      <button id="settingsBtn" class="icon-btn" title="Настройки">⚙️</button>
     </header>
     <main>
       <div class="input-group">
-        <label for="profileInput">Steam ID / Profile URL</label>
+        <label for="profileInput" data-i18n="profileLabel">Steam ID / Profile URL</label>
         <div class="input-row">
           <input type="text" id="profileInput" placeholder="Paste Steam profile URL or ID...">
           <div class="input-actions">
@@ -22,10 +26,10 @@
             <button id="tabUrlBtn" class="icon-btn" title="Взять URL из вкладки">🌐</button>
           </div>
         </div>
-        <div id="errorMsg" class="error-msg hidden">Please enter a valid Steam ID or URL.</div>
+        <div id="errorMsg" class="error-msg hidden" data-i18n="errorMsg">Please enter a valid Steam ID or URL.</div>
       </div>
 
-      <div class="section-title">Trackers</div>
+      <div class="section-title" data-i18n="trackersTitle">Trackers</div>
       <div class="button-group trackers-grid">
         <button id="cstrackerBtn" class="tracker-btn cstracker">
           <img src="https://www.google.com/s2/favicons?domain=cstracker.gg" class="tracker-icon" alt=""> CSTracker
@@ -34,44 +38,84 @@
           <img src="https://www.google.com/s2/favicons?domain=cs2tracker.gg" class="tracker-icon" alt=""> CS2Tracker
         </button>
         <button id="faceitFinderBtn" class="tracker-btn faceit">
-          <img src="https://www.google.com/s2/favicons?domain=faceitfinder.com" class="tracker-icon" alt=""> Faceit Finder
+          <img src="https://www.google.com/s2/favicons?domain=faceitfinder.com" class="tracker-icon" alt=""> Faceit
         </button>
         <button id="leetifyBtn" class="tracker-btn leetify">
           <img src="https://www.google.com/s2/favicons?domain=leetify.com" class="tracker-icon" alt=""> Leetify
         </button>
       </div>
 
-      <div class="section-title">Player Note</div>
+      <div class="section-title" data-i18n="noteTitle">Player Note</div>
       <div class="note-container">
-        <div class="tags-container">
-          <button type="button" class="tag-btn" data-color="danger" data-tag="Софт">Софт</button>
-          <button type="button" class="tag-btn" data-color="danger" data-tag="Токсик">Токсик</button>
-          <button type="button" class="tag-btn" data-color="warning" data-tag="Твинк">Твинк</button>
-          <button type="button" class="tag-btn" data-color="success" data-tag="Хороший игрок">Хороший игрок</button>
+        <div id="tagsContainer" class="tags-container">
+          <!-- Dynamically rendered tags -->
         </div>
-        <textarea id="playerNote" rows="3" placeholder="Заметка по игроку (подозрение в софте, твинк, смайкер...)"></textarea>
+        <textarea id="playerNote" rows="3" placeholder="Заметка по игроку (подозрение в софте, твинк...)"></textarea>
         <div class="note-footer">
           <span id="noteStatus" class="note-status"></span>
-          <button id="deleteNoteBtn" class="delete-btn">Удалить заметку</button>
+          <button id="deleteNoteBtn" class="delete-btn" data-i18n="deleteNoteBtn">Удалить заметку</button>
         </div>
       </div>
 
       <div class="data-actions">
-        <button id="exportBtn" class="data-btn">📥 Экспорт</button>
-        <button id="importBtn" class="data-btn">📤 Импорт</button>
+        <button id="exportBtn" class="data-btn" data-i18n="exportBtn">📥 Экспорт</button>
+        <button id="importBtn" class="data-btn" data-i18n="importBtn">📤 Импорт</button>
         <input type="file" id="importFileInput" accept=".json" style="display: none;">
       </div>
       <div class="viewer-action">
-        <button id="viewAllNotesBtn" class="data-btn full-width">📋 Все заметки</button>
+        <button id="viewAllNotesBtn" class="data-btn full-width" data-i18n="viewAllNotesBtn">📋 Все заметки</button>
       </div>
     </main>
+  </div>
+
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 data-i18n="settingsTitle">Настройки</h2>
+        <button id="closeSettingsBtn" class="close-btn">✕</button>
+      </div>
+      <div class="settings-body">
+        <div class="setting-item">
+          <label for="langSelect" data-i18n="langLabel">Язык / Language</label>
+          <select id="langSelect">
+            <option value="ru">Русский</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+
+        <div class="setting-item checkbox-item">
+          <label>
+            <input type="checkbox" id="autoPasteCheckbox">
+            <span data-i18n="autoPasteLabel">Авто-вставка из буфера при открытии</span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <label data-i18n="tagsManagerLabel">Конструктор тегов</label>
+          <div id="customTagsList" class="custom-tags-list">
+            <!-- Active tags with delete buttons -->
+          </div>
+          <div class="add-tag-form">
+            <input type="text" id="newTagName" placeholder="Имя тега...">
+            <select id="newTagColor">
+              <option value="danger">Red (Danger)</option>
+              <option value="warning">Yellow (Warning)</option>
+              <option value="success">Green (Success)</option>
+              <option value="info">Blue (Info)</option>
+            </select>
+            <button id="addTagBtn" class="data-btn" data-i18n="addTagBtn">Добавить</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Modal for viewing all notes -->
   <div id="allNotesModal" class="modal hidden">
     <div class="modal-content">
       <div class="modal-header">
-        <h2>Сохраненные заметки</h2>
+        <h2 data-i18n="allNotesTitle">Сохраненные заметки</h2>
         <button id="closeModalBtn" class="close-btn">✕</button>
       </div>
       <div class="modal-search">
