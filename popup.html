@@ -15,55 +15,91 @@
       </div>
       <button id="settingsBtn" class="icon-btn" title="Настройки">⚙️</button>
     </header>
+
+    <!-- Tab Switcher -->
+    <div class="tab-switcher">
+      <button id="profileTabBtn" class="tab-btn active" data-i18n="tabProfile">Профиль</button>
+      <button id="liveTabBtn" class="tab-btn" data-i18n="tabLive">🎮 Live Матч</button>
+    </div>
+
     <main>
-      <div class="input-group">
-        <label for="profileInput" data-i18n="profileLabel">Steam ID / Profile URL</label>
-        <div class="input-row">
-          <input type="text" id="profileInput" placeholder="Paste Steam profile URL or ID...">
-          <div class="input-actions">
-            <button id="clearInputBtn" class="icon-btn" title="Очистить поле">✕</button>
-            <button id="pasteClipboardBtn" class="icon-btn" title="Вставить из буфера обмена">📋</button>
-            <button id="tabUrlBtn" class="icon-btn" title="Взять URL из вкладки">🌐</button>
+      <!-- Profile Screen -->
+      <div id="profileScreen" class="screen">
+        <div class="input-group">
+          <label for="profileInput" data-i18n="profileLabel">Steam ID / Profile URL</label>
+          <div class="input-row">
+            <input type="text" id="profileInput" placeholder="Paste Steam profile URL or ID...">
+            <div class="input-actions">
+              <button id="clearInputBtn" class="icon-btn" title="Очистить поле">✕</button>
+              <button id="pasteClipboardBtn" class="icon-btn" title="Вставить из буфера обмена">📋</button>
+              <button id="tabUrlBtn" class="icon-btn" title="Взять URL из вкладки">🌐</button>
+            </div>
+          </div>
+          <div id="errorMsg" class="error-msg hidden" data-i18n="errorMsg">Please enter a valid Steam ID or URL.</div>
+        </div>
+
+        <div class="section-title" data-i18n="trackersTitle">Trackers</div>
+        <div class="button-group trackers-grid">
+          <button id="cstrackerBtn" class="tracker-btn cstracker">
+            <img src="https://www.google.com/s2/favicons?domain=cstracker.gg" class="tracker-icon" alt=""> CSTracker
+          </button>
+          <button id="cs2trackerBtn" class="tracker-btn cs2tracker">
+            <img src="https://www.google.com/s2/favicons?domain=cs2tracker.gg" class="tracker-icon" alt=""> CS2Tracker
+          </button>
+          <button id="faceitFinderBtn" class="tracker-btn faceit">
+            <img src="https://www.google.com/s2/favicons?domain=faceitfinder.com" class="tracker-icon" alt=""> Faceit
+          </button>
+          <button id="csstatsBtn" class="tracker-btn csstats">
+            <img src="https://www.google.com/s2/favicons?domain=csstats.gg" class="tracker-icon" alt=""> CSStats
+          </button>
+        </div>
+
+        <div class="section-title" data-i18n="noteTitle">Player Note</div>
+        <div class="note-container">
+          <div id="tagsContainer" class="tags-container">
+            <!-- Dynamically rendered tags -->
+          </div>
+          <textarea id="playerNote" rows="3" placeholder="Заметка по игроку (подозрение в софте, твинк...)"></textarea>
+          <div class="note-footer">
+            <span id="noteStatus" class="note-status"></span>
+            <button id="deleteNoteBtn" class="delete-btn" data-i18n="deleteNoteBtn">Удалить заметку</button>
           </div>
         </div>
-        <div id="errorMsg" class="error-msg hidden" data-i18n="errorMsg">Please enter a valid Steam ID or URL.</div>
-      </div>
 
-      <div class="section-title" data-i18n="trackersTitle">Trackers</div>
-      <div class="button-group trackers-grid">
-        <button id="cstrackerBtn" class="tracker-btn cstracker">
-          <img src="https://www.google.com/s2/favicons?domain=cstracker.gg" class="tracker-icon" alt=""> CSTracker
-        </button>
-        <button id="cs2trackerBtn" class="tracker-btn cs2tracker">
-          <img src="https://www.google.com/s2/favicons?domain=cs2tracker.gg" class="tracker-icon" alt=""> CS2Tracker
-        </button>
-        <button id="faceitFinderBtn" class="tracker-btn faceit">
-          <img src="https://www.google.com/s2/favicons?domain=faceitfinder.com" class="tracker-icon" alt=""> Faceit
-        </button>
-        <button id="csstatsBtn" class="tracker-btn csstats">
-          <img src="https://www.google.com/s2/favicons?domain=csstats.gg" class="tracker-icon" alt=""> CSStats
-        </button>
-      </div>
-
-      <div class="section-title" data-i18n="noteTitle">Player Note</div>
-      <div class="note-container">
-        <div id="tagsContainer" class="tags-container">
-          <!-- Dynamically rendered tags -->
+        <div class="data-actions">
+          <button id="exportBtn" class="data-btn" data-i18n="exportBtn">📥 Экспорт</button>
+          <button id="importBtn" class="data-btn" data-i18n="importBtn">📤 Импорт</button>
+          <input type="file" id="importFileInput" accept=".json" style="display: none;">
         </div>
-        <textarea id="playerNote" rows="3" placeholder="Заметка по игроку (подозрение в софте, твинк...)"></textarea>
-        <div class="note-footer">
-          <span id="noteStatus" class="note-status"></span>
-          <button id="deleteNoteBtn" class="delete-btn" data-i18n="deleteNoteBtn">Удалить заметку</button>
+        <div class="viewer-action">
+          <button id="viewAllNotesBtn" class="data-btn full-width" data-i18n="viewAllNotesBtn">📋 Все заметки</button>
         </div>
       </div>
 
-      <div class="data-actions">
-        <button id="exportBtn" class="data-btn" data-i18n="exportBtn">📥 Экспорт</button>
-        <button id="importBtn" class="data-btn" data-i18n="importBtn">📤 Импорт</button>
-        <input type="file" id="importFileInput" accept=".json" style="display: none;">
-      </div>
-      <div class="viewer-action">
-        <button id="viewAllNotesBtn" class="data-btn full-width" data-i18n="viewAllNotesBtn">📋 Все заметки</button>
+      <!-- Live Match Screen -->
+      <div id="liveMatchScreen" class="screen hidden">
+        <div class="gsi-status-bar">
+          <span id="gsiIndicator" class="gsi-dot disconnected"></span>
+          <span id="gsiStatusText" data-i18n="gsiWaiting">Ожидание подключения к GSI (порт 3000)...</span>
+        </div>
+        
+        <div id="matchInfoCard" class="match-info-card hidden">
+          <div class="match-info-row">
+            <span id="matchMap">Карта: -</span>
+            <span id="matchScore">Счет: 0 : 0</span>
+          </div>
+        </div>
+
+        <div class="live-teams-container">
+          <div class="live-team-column">
+            <div class="live-team-header" data-i18n="teamT">Команда T</div>
+            <div id="teamTList" class="live-players-list"></div>
+          </div>
+          <div class="live-team-column">
+            <div class="live-team-header" data-i18n="teamCT">Команда CT</div>
+            <div id="teamCTList" class="live-players-list"></div>
+          </div>
+        </div>
       </div>
     </main>
   </div>

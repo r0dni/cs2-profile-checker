@@ -1,6 +1,8 @@
 const i18n = {
   ru: {
     appTitle: "CS2 Profile Checker",
+    tabProfile: "Профиль",
+    tabLive: "🎮 Live Матч",
     profileLabel: "Steam ID / Ссылка на профиль",
     profilePlaceholder: "Введите Steam ID или ссылку...",
     errorMsg: "Введите корректный Steam ID или URL.",
@@ -31,10 +33,20 @@ const i18n = {
     importError: "Ошибка при чтении JSON файла.",
     invalidBackup: "Неверный формат файла бэкапа.",
     noNotesFound: "Заметки не найдены",
-    tagNameRequired: "Введите имя тега."
+    tagNameRequired: "Введите имя тега.",
+    gsiWaiting: "Ожидание подключения к GSI (порт 3000)...",
+    gsiConnected: "Подключено к CS2 (GSI Active)",
+    gsiDisconnected: "Отключено от GSI",
+    teamT: "Команда T",
+    teamCT: "Команда CT",
+    noPlayersLive: "Нет данных об игроках",
+    mapLabel: "Карта: ",
+    scoreLabel: "Счет: "
   },
   en: {
     appTitle: "CS2 Profile Checker",
+    tabProfile: "Profile",
+    tabLive: "🎮 Live Match",
     profileLabel: "Steam ID / Profile URL",
     profilePlaceholder: "Enter Steam profile URL or ID...",
     errorMsg: "Please enter a valid Steam ID or URL.",
@@ -65,7 +77,15 @@ const i18n = {
     importError: "Error reading JSON file.",
     invalidBackup: "Invalid backup file format.",
     noNotesFound: "No notes found",
-    tagNameRequired: "Tag name is required."
+    tagNameRequired: "Tag name is required.",
+    gsiWaiting: "Waiting for GSI connection (port 3000)...",
+    gsiConnected: "Connected to CS2 (GSI Active)",
+    gsiDisconnected: "Disconnected from GSI",
+    teamT: "Team T",
+    teamCT: "Team CT",
+    noPlayersLive: "No players data",
+    mapLabel: "Map: ",
+    scoreLabel: "Score: "
   }
 };
 
@@ -143,7 +163,6 @@ async function resolveToSteamID64(input) {
     return rawId;
   }
 
-  // Fetch Steam XML API for customURL
   try {
     const response = await fetch(`https://steamcommunity.com/id/${rawId}/?xml=1`);
     const xmlText = await response.text();
@@ -153,9 +172,7 @@ async function resolveToSteamID64(input) {
     if (steamID64Node && steamID64Node.textContent) {
       return steamID64Node.textContent.trim();
     }
-  } catch (err) {
-    console.error('Failed to resolve customURL via Steam XML API:', err);
-  }
+  } catch (err) {}
 
   return rawId;
 }
@@ -183,6 +200,21 @@ document.addEventListener('DOMContentLoaded', async () => {
   const modalSearchInput = document.getElementById('modalSearchInput');
   const notesListContainer = document.getElementById('notesListContainer');
 
+  // Tabs
+  const profileTabBtn = document.getElementById('profileTabBtn');
+  const liveTabBtn = document.getElementById('liveTabBtn');
+  const profileScreen = document.getElementById('profileScreen');
+  const liveMatchScreen = document.getElementById('liveMatchScreen');
+
+  // Live match elements
+  const gsiIndicator = document.getElementById('gsiIndicator');
+  const gsiStatusText = document.getElementById('gsiStatusText');
+  const matchInfoCard = document.getElementById('matchInfoCard');
+  const matchMap = document.getElementById('matchMap');
+  const matchScore = document.getElementById('matchScore');
+  const teamTList = document.getElementById('teamTList');
+  const teamCTList = document.getElementById('teamCTList');
+
   // Settings elements
   const settingsBtn = document.getElementById('settingsBtn');
   const settingsModal = document.getElementById('settingsModal');
@@ -190,7 +222,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const langSelect = document.getElementById('langSelect');
   const autoPasteCheckbox = document.getElementById('autoPasteCheckbox');
   
-  // Auto-open tracker checkboxes
   const autoOpenCstracker = document.getElementById('autoOpenCstracker');
   const autoOpenCs2tracker = document.getElementById('autoOpenCs2tracker');
   const autoOpenFaceit = document.getElementById('autoOpenFaceit');
@@ -207,6 +238,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   let customTags = [...DEFAULT_TAGS];
   let debounceTimer = null;
   let lastAutoOpenedId = null;
+  let gsiPollInterval = null;
+
+  // Tab switching
+  profileTabBtn.addEventListener('click', () => {
+    profileTabBtn.classList.add('active');
+    liveTabBtn.classList.remove('active');
+    profileScreen.classList.remove('hidden');
+    liveMatchScreen.classList.add('hidden');
+    stopGsiPolling();
+  });
+
+  liveTabBtn.addEventListener('click', () => {
+    liveTabBtn.classList.add('active');
+    profileTabBtn.classList.remove('active');
+    liveMatchScreen.classList.remove('hidden');
+    profileScreen.classList.add('hidden');
+    startGsiPolling();
+  });
 
   async function processInputAndLoad(inputVal, triggerOpen = false) {
     const resolvedId = await resolveToSteamID64(inputVal);
@@ -237,7 +286,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderQuickTags();
     renderCustomTagsSettings();
 
-    // Auto-paste if enabled
     if (autoPasteEnabled) {
       try {
         const clipboardText = await navigator.clipboard.readText();
@@ -266,7 +314,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (dict.searchPlaceholder) modalSearchInput.placeholder = dict.searchPlaceholder;
   }
 
-  // Language change
   langSelect.addEventListener('change', () => {
     currentLang = langSelect.value;
     storage.set({ language: currentLang }, () => {
@@ -274,13 +321,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  // Auto-paste checkbox change
   autoPasteCheckbox.addEventListener('change', () => {
     autoPasteEnabled = autoPasteCheckbox.checked;
     storage.set({ auto_paste: autoPasteEnabled });
   });
 
-  // Auto-open checkboxes change
   function saveAutoOpenSettings() {
     autoOpenSettings = {
       cstracker: autoOpenCstracker.checked,
@@ -296,7 +341,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   autoOpenFaceit.addEventListener('change', saveAutoOpenSettings);
   autoOpenCsstats.addEventListener('change', saveAutoOpenSettings);
 
-  // Settings modal toggle
   settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
   closeSettingsBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
   settingsModal.addEventListener('click', (e) => {
@@ -321,7 +365,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // Render quick tags in main popup
   function renderQuickTags() {
     tagsContainer.innerHTML = '';
     customTags.forEach(tag => {
@@ -340,7 +383,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Render tags in settings modal manager
   function renderCustomTagsSettings() {
     customTagsList.innerHTML = '';
     customTags.forEach((tag, index) => {
@@ -365,7 +407,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Add new tag
   addTagBtn.addEventListener('click', () => {
     const name = newTagName.value.trim();
     const color = newTagColor.value;
@@ -401,7 +442,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
-  // Clear input button
   clearInputBtn.addEventListener('click', () => {
     profileInput.value = '';
     errorMsg.classList.add('hidden');
@@ -412,7 +452,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     profileInput.focus();
   });
 
-  // Manual paste from clipboard button
   pasteClipboardBtn.addEventListener('click', async () => {
     const dict = i18n[currentLang] || i18n.ru;
     try {
@@ -431,7 +470,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Active tab URL reader
   tabUrlBtn.addEventListener('click', () => {
     const dict = i18n[currentLang] || i18n.ru;
     chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
@@ -454,7 +492,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const identifier = await resolveToSteamID64(rawValue);
 
     if (!identifier) {
-      errorMsg.classList.remove('hidden');
+      errorMsg.classList.add('hidden');
       profileInput.classList.add('error');
       return;
     }
@@ -482,7 +520,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     await handleRedirect(id => `https://csstats.gg/player/${id}`);
   });
 
-  // Profile input change handler
   profileInput.addEventListener('input', async () => {
     if (errorMsg && !errorMsg.classList.contains('hidden')) {
       errorMsg.classList.add('hidden');
@@ -497,7 +534,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
-  // Note auto-save with debounce (500ms)
   playerNote.addEventListener('input', async () => {
     const dict = i18n[currentLang] || i18n.ru;
     const identifier = await resolveToSteamID64(profileInput.value);
@@ -522,7 +558,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     }, 500);
   });
 
-  // Delete note button
   deleteNoteBtn.addEventListener('click', async () => {
     const dict = i18n[currentLang] || i18n.ru;
     const identifier = await resolveToSteamID64(profileInput.value);
@@ -543,7 +578,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  // Export notes
   exportBtn.addEventListener('click', () => {
     storage.get(null, (items) => {
       const exportData = { ...items };
@@ -562,7 +596,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  // Import notes
   importBtn.addEventListener('click', () => {
     importFileInput.click();
   });
@@ -593,7 +626,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     reader.readAsText(file);
   });
 
-  // All Notes Viewer Modal logic
   function renderNotesList(filterQuery = '') {
     notesListContainer.innerHTML = '';
     const dict = i18n[currentLang] || i18n.ru;
@@ -651,4 +683,98 @@ document.addEventListener('DOMContentLoaded', async () => {
   modalSearchInput.addEventListener('input', () => {
     renderNotesList(modalSearchInput.value);
   });
+
+  // GSI Polling
+  function startGsiPolling() {
+    if (gsiPollInterval) clearInterval(gsiPollInterval);
+    pollGsiState();
+    gsiPollInterval = setInterval(pollGsiState, 2000);
+  }
+
+  function stopGsiPolling() {
+    if (gsiPollInterval) {
+      clearInterval(gsiPollInterval);
+      gsiPollInterval = null;
+    }
+  }
+
+  async function pollGsiState() {
+    const dict = i18n[currentLang] || i18n.ru;
+    try {
+      const res = await fetch('http://127.0.0.1:3000/status');
+      const data = await res.json();
+
+      if (data && data.connected) {
+        gsiIndicator.className = 'gsi-dot connected';
+        gsiStatusText.textContent = dict.gsiConnected;
+        
+        if (data.map) {
+          matchInfoCard.classList.remove('hidden');
+          matchMap.textContent = `${dict.mapLabel}${data.map.name || '-'}`;
+          matchScore.textContent = `${dict.scoreLabel}CT ${data.map.score_ct || 0} : T ${data.map.score_t || 0}`;
+        }
+
+        renderLiveTeams(data.players || []);
+      } else {
+        gsiIndicator.className = 'gsi-dot disconnected';
+        gsiStatusText.textContent = dict.gsiWaiting;
+        matchInfoCard.classList.add('hidden');
+        teamTList.innerHTML = `<div class="no-notes">${dict.noPlayersLive}</div>`;
+        teamCTList.innerHTML = `<div class="no-notes">${dict.noPlayersLive}</div>`;
+      }
+    } catch (err) {
+      gsiIndicator.className = 'gsi-dot disconnected';
+      gsiStatusText.textContent = dict.gsiWaiting;
+      matchInfoCard.classList.add('hidden');
+      teamTList.innerHTML = `<div class="no-notes">${dict.noPlayersLive}</div>`;
+      teamCTList.innerHTML = `<div class="no-notes">${dict.noPlayersLive}</div>`;
+    }
+  }
+
+  function renderLiveTeams(players) {
+    teamTList.innerHTML = '';
+    teamCTList.innerHTML = '';
+
+    const tPlayers = players.filter(p => p.team === 'T');
+    const ctPlayers = players.filter(p => p.team === 'CT');
+
+    if (tPlayers.length === 0) teamTList.innerHTML = '<div class="no-notes">-</div>';
+    if (ctPlayers.length === 0) teamCTList.innerHTML = '<div class="no-notes">-</div>';
+
+    // Collect all steamIds to fetch notes in batch
+    const steamIds = players.map(p => p.steamId);
+    storage.get(steamIds, (notesMap) => {
+      tPlayers.forEach(p => renderPlayerCard(p, teamTList, notesMap[p.steamId]));
+      ctPlayers.forEach(p => renderPlayerCard(p, teamCTList, notesMap[p.steamId]));
+    });
+  }
+
+  function renderPlayerCard(player, container, noteText) {
+    const card = document.createElement('div');
+    card.className = 'live-player-card';
+
+    let noteHtml = noteText ? `<div class="live-player-note">${noteText}</div>` : '';
+
+    card.innerHTML = `
+      <div class="live-player-header">
+        <span class="live-player-name" title="${player.name}">${player.name}</span>
+        <span class="live-player-id">${player.steamId}</span>
+      </div>
+      ${noteHtml}
+      <div class="live-player-trackers">
+        <button class="live-tracker-link" data-url="https://cstracker.gg/players/${player.steamId}">CST</button>
+        <button class="live-tracker-link" data-url="https://cs2tracker.gg/stats/${player.steamId}">CS2T</button>
+        <button class="live-tracker-link" data-url="https://faceitfinder.com/profile/${player.steamId}">FF</button>
+        <button class="live-tracker-link" data-url="https://csstats.gg/player/${player.steamId}">CSS</button>
+      </div>
+    `;
+
+    card.querySelectorAll('.live-tracker-link').forEach(btn => {
+      btn.addEventListener('click', () => {
+        chrome.tabs.create({ url: btn.getAttribute('data-url') });
+      });
+    });
+
+    container.appendChild(card);
+  }
 });
