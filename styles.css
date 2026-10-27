@@ -20,7 +20,7 @@
 body {
   margin: 0;
   padding: 0;
-  width: 380px;
+  width: 390px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background-color: var(--bg-primary);
   color: var(--text-primary);
@@ -57,7 +57,6 @@ label {
 .input-row {
   display: flex;
   gap: 6px;
-  position: relative;
 }
 
 input[type="text"] {
@@ -65,7 +64,7 @@ input[type="text"] {
   background-color: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  padding: 9px 30px 9px 12px;
+  padding: 9px 12px;
   color: var(--text-primary);
   font-size: 13px;
   outline: none;
@@ -78,24 +77,6 @@ input[type="text"]:focus {
 
 input[type="text"].error {
   border-color: var(--error-color);
-}
-
-.action-btn {
-  position: absolute;
-  right: 80px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  font-size: 14px;
-  cursor: pointer;
-  padding: 4px;
-  transition: color 0.2s;
-}
-
-.action-btn:hover {
-  color: var(--text-primary);
 }
 
 .input-actions {
@@ -114,6 +95,7 @@ input[type="text"].error {
   align-items: center;
   justify-content: center;
   transition: background-color 0.2s, border-color 0.2s;
+  color: var(--text-primary);
 }
 
 .icon-btn:hover {
@@ -144,44 +126,53 @@ input[type="text"].error {
 }
 
 .tracker-btn {
-  border: none;
+  border: 1px solid var(--border-color);
   border-radius: 6px;
-  padding: 9px 10px;
-  font-weight: 700;
+  padding: 8px 10px;
+  font-weight: 600;
   font-size: 11px;
   cursor: pointer;
-  transition: background-color 0.2s, transform 0.1s;
+  transition: background-color 0.2s, border-color 0.2s, transform 0.1s;
   text-transform: uppercase;
-  color: #12141a;
-  text-align: center;
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  text-decoration: none;
 }
 
 .tracker-btn:active {
   transform: scale(0.98);
 }
 
-.cstracker {
-  background-color: var(--accent-orange);
+.tracker-icon {
+  width: 14px;
+  height: 14px;
+  object-fit: contain;
+  border-radius: 2px;
 }
-.cstracker:hover { background-color: var(--accent-orange-hover); }
 
-.cs2tracker {
-  background-color: var(--accent-blue);
-  color: #ffffff;
+.cstracker:hover {
+  border-color: var(--accent-orange);
+  background-color: rgba(255, 153, 0, 0.1);
 }
-.cs2tracker:hover { background-color: var(--accent-blue-hover); }
 
-.faceit {
-  background-color: #ff5500;
-  color: #ffffff;
+.cs2tracker:hover {
+  border-color: var(--accent-blue);
+  background-color: rgba(0, 180, 216, 0.1);
 }
-.faceit:hover { background-color: #e04b00; }
 
-.leetify {
-  background-color: #7289da;
-  color: #ffffff;
+.faceit:hover {
+  border-color: #ff5500;
+  background-color: rgba(255, 85, 0, 0.1);
 }
-.leetify:hover { background-color: #5b6eae; }
+
+.leetify:hover {
+  border-color: #7289da;
+  background-color: rgba(114, 137, 218, 0.1);
+}
 
 .note-container {
   display: flex;
