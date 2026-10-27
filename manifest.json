@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "CS2 Profile Checker",
-  "version": "0.0.1",
-  "description": "Quickly check CS2 player profiles, fast mirrors, local notes with tags, and backup.",
+  "version": "0.0.2",
+  "description": "Quickly check CS2 player profiles, local notes with tags, and backup.",
   "permissions": [
     "activeTab",
     "tabs",

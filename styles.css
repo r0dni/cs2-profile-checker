@@ -5,10 +5,6 @@
   --accent-orange-hover: #ffaa1a;
   --accent-blue: #00b4d8;
   --accent-blue-hover: #0096b4;
-  --accent-green: #2ecc71;
-  --accent-green-hover: #27ae60;
-  --accent-purple: #9b59b6;
-  --accent-purple-hover: #8e44ad;
   --text-primary: #ffffff;
   --text-secondary: #9ba1a6;
   --border-color: #2a303c;
@@ -122,12 +118,6 @@ input[type="text"].error {
   gap: 8px;
 }
 
-.mirror-group {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
 .tracker-btn {
   border: none;
   border-radius: 6px;
@@ -161,24 +151,6 @@ input[type="text"].error {
 
 .cs2tracker:hover {
   background-color: var(--accent-blue-hover);
-}
-
-.mirror-cx {
-  background-color: var(--accent-green);
-  color: #12141a;
-}
-
-.mirror-cx:hover {
-  background-color: var(--accent-green-hover);
-}
-
-.mirror-tips {
-  background-color: var(--accent-purple);
-  color: #ffffff;
-}
-
-.mirror-tips:hover {
-  background-color: var(--accent-purple-hover);
 }
 
 .note-container {

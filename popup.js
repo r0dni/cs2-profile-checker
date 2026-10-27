@@ -3,10 +3,10 @@ function extractSteamIdentifier(input) {
   input = input.trim();
   if (!input) return null;
 
-  // Check if it's a steamcommunity URL (or mirror URL)
+  // Check if it's a steamcommunity URL
   try {
     const url = new URL(input);
-    if (url.hostname.includes('steamcommunity.')) {
+    if (url.hostname.includes('steamcommunity.com')) {
       const parts = url.pathname.split('/').filter(Boolean);
       // Expected formats: /profiles/{steamId64} or /id/{customName}
       if (parts.length >= 2 && (parts[0] === 'profiles' || parts[0] === 'id')) {
@@ -28,8 +28,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   const tabUrlBtn = document.getElementById('tabUrlBtn');
   const cstrackerBtn = document.getElementById('cstrackerBtn');
   const cs2trackerBtn = document.getElementById('cs2trackerBtn');
-  const mirrorCxBtn = document.getElementById('mirrorCxBtn');
-  const mirrorTipsBtn = document.getElementById('mirrorTipsBtn');
   const playerNote = document.getElementById('playerNote');
   const noteStatus = document.getElementById('noteStatus');
   const deleteNoteBtn = document.getElementById('deleteNoteBtn');
@@ -62,7 +60,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const clipboardText = await navigator.clipboard.readText();
     if (clipboardText) {
       const cleaned = clipboardText.trim();
-      if (cleaned.includes('steamcommunity.') || /^\d{17}$/.test(cleaned) || /^[a-zA-Z0-9_-]{3,}$/.test(cleaned)) {
+      if (cleaned.includes('steamcommunity.com') || /^\d{17}$/.test(cleaned) || /^[a-zA-Z0-9_-]{3,}$/.test(cleaned)) {
         profileInput.value = cleaned;
       }
     }
@@ -98,7 +96,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       if (tabs && tabs[0] && tabs[0].url) {
         const url = tabs[0].url;
-        if (url.includes('steamcommunity.')) {
+        if (url.includes('steamcommunity.com')) {
           profileInput.value = url;
           errorMsg.classList.add('hidden');
           profileInput.classList.remove('error');
@@ -115,7 +113,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const identifier = extractSteamIdentifier(rawValue);
 
     if (!identifier) {
-      errorMsg.classList.remove('hidden');
+      errorMsg.classList.add('hidden');
       profileInput.classList.add('error');
       return;
     }
@@ -127,50 +125,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     chrome.tabs.create({ url: targetUrl });
   }
 
-  function handleMirrorRedirect(domainExtension) {
-    const rawValue = profileInput.value.trim();
-    if (!rawValue) {
-      errorMsg.classList.remove('hidden');
-      profileInput.classList.add('error');
-      return;
-    }
-
-    let targetUrl = '';
-    try {
-      const url = new URL(rawValue);
-      if (url.hostname.includes('steamcommunity.')) {
-        url.hostname = url.hostname.replace(/steamcommunity\.[a-z.]+/, `steamcommunity.${domainExtension}`);
-        targetUrl = url.toString();
-      } else {
-        url.hostname = `steamcommunity.${domainExtension}`;
-        targetUrl = url.toString();
-      }
-    } catch (e) {
-      const identifier = rawValue.replace(/\/+$/, '');
-      const isSteamId64 = /^\d{17}$/.test(identifier);
-      const pathType = isSteamId64 ? 'profiles' : 'id';
-      targetUrl = `https://steamcommunity.${domainExtension}/${pathType}/${identifier}`;
-    }
-
-    errorMsg.classList.add('hidden');
-    profileInput.classList.remove('error');
-    chrome.tabs.create({ url: targetUrl });
-  }
-
   cstrackerBtn.addEventListener('click', () => {
     handleRedirect(id => `https://cstracker.gg/profile/steam/${id}`);
   });
 
   cs2trackerBtn.addEventListener('click', () => {
     handleRedirect(id => `https://cs2tracker.gg/profile/${id}`);
-  });
-
-  mirrorCxBtn.addEventListener('click', () => {
-    handleMirrorRedirect('cx');
-  });
-
-  mirrorTipsBtn.addEventListener('click', () => {
-    handleMirrorRedirect('tips');
   });
 
   // Profile input change handler
