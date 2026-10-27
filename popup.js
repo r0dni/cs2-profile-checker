@@ -14,6 +14,7 @@ const i18n = {
     settingsTitle: "Настройки",
     langLabel: "Язык интерфейса",
     autoPasteLabel: "Авто-вставка из буфера при открытии",
+    autoOpenTitle: "Авто-открытие трекеров при вводе ID",
     tagsManagerLabel: "Конструктор быстрых тегов",
     addTagBtn: "Добавить",
     tagNamePlaceholder: "Имя тега...",
@@ -47,6 +48,7 @@ const i18n = {
     settingsTitle: "Settings",
     langLabel: "Language",
     autoPasteLabel: "Auto-paste from clipboard on open",
+    autoOpenTitle: "Auto-open trackers on ID input",
     tagsManagerLabel: "Quick Tags Manager",
     addTagBtn: "Add",
     tagNamePlaceholder: "Tag name...",
@@ -74,7 +76,6 @@ const DEFAULT_TAGS = [
   { name: "Хороший игрок", color: "success" }
 ];
 
-// Storage wrapper using sync with local fallback
 const storage = {
   get(keys, callback) {
     if (chrome.storage.sync) {
@@ -164,6 +165,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   const closeSettingsBtn = document.getElementById('closeSettingsBtn');
   const langSelect = document.getElementById('langSelect');
   const autoPasteCheckbox = document.getElementById('autoPasteCheckbox');
+  
+  // Auto-open tracker checkboxes
+  const autoOpenCstracker = document.getElementById('autoOpenCstracker');
+  const autoOpenCs2tracker = document.getElementById('autoOpenCs2tracker');
+  const autoOpenFaceit = document.getElementById('autoOpenFaceit');
+  const autoOpenLeetify = document.getElementById('autoOpenLeetify');
+
   const customTagsList = document.getElementById('customTagsList');
   const newTagName = document.getElementById('newTagName');
   const newTagColor = document.getElementById('newTagColor');
@@ -171,17 +179,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let currentLang = 'ru';
   let autoPasteEnabled = true;
+  let autoOpenSettings = { cstracker: false, cs2tracker: false, faceit: false, leetify: false };
   let customTags = [...DEFAULT_TAGS];
   let debounceTimer = null;
+  let lastAutoOpenedId = null;
 
   // Load settings & apply i18n
-  storage.get(['language', 'auto_paste', 'custom_tags'], async (res) => {
+  storage.get(['language', 'auto_paste', 'auto_open_trackers', 'custom_tags'], async (res) => {
     if (res.language) currentLang = res.language;
     if (res.auto_paste !== undefined) autoPasteEnabled = res.auto_paste;
+    if (res.auto_open_trackers) autoOpenSettings = { ...autoOpenSettings, ...res.auto_open_trackers };
     if (res.custom_tags && Array.isArray(res.custom_tags)) customTags = res.custom_tags;
 
     langSelect.value = currentLang;
     autoPasteCheckbox.checked = autoPasteEnabled;
+    autoOpenCstracker.checked = autoOpenSettings.cstracker;
+    autoOpenCs2tracker.checked = autoOpenSettings.cs2tracker;
+    autoOpenFaceit.checked = autoOpenSettings.faceit;
+    autoOpenLeetify.checked = autoOpenSettings.leetify;
 
     applyI18n(currentLang);
     renderQuickTags();
@@ -195,7 +210,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           const cleaned = clipboardText.trim();
           if (cleaned.includes('steamcommunity.com') || /^\d{17}$/.test(cleaned) || /^[a-zA-Z0-9_-]{3,}$/.test(cleaned)) {
             profileInput.value = cleaned;
-            loadNoteForIdentifier(extractSteamIdentifier(cleaned));
+            const identifier = extractSteamIdentifier(cleaned);
+            loadNoteForIdentifier(identifier);
+            triggerAutoOpen(identifier);
           }
         }
       } catch (err) {}
@@ -230,12 +247,46 @@ document.addEventListener('DOMContentLoaded', async () => {
     storage.set({ auto_paste: autoPasteEnabled });
   });
 
+  // Auto-open checkboxes change
+  function saveAutoOpenSettings() {
+    autoOpenSettings = {
+      cstracker: autoOpenCstracker.checked,
+      cs2tracker: autoOpenCs2tracker.checked,
+      faceit: autoOpenFaceit.checked,
+      leetify: autoOpenLeetify.checked
+    };
+    storage.set({ auto_open_trackers: autoOpenSettings });
+  }
+
+  autoOpenCstracker.addEventListener('change', saveAutoOpenSettings);
+  autoOpenCs2tracker.addEventListener('change', saveAutoOpenSettings);
+  autoOpenFaceit.addEventListener('change', saveAutoOpenSettings);
+  autoOpenLeetify.addEventListener('change', saveAutoOpenSettings);
+
   // Settings modal toggle
   settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
   closeSettingsBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
   settingsModal.addEventListener('click', (e) => {
     if (e.target === settingsModal) settingsModal.classList.add('hidden');
   });
+
+  function triggerAutoOpen(identifier) {
+    if (!identifier || identifier === lastAutoOpenedId) return;
+    lastAutoOpenedId = identifier;
+
+    if (autoOpenSettings.cstracker) {
+      chrome.tabs.create({ url: `https://cstracker.gg/profile/steam/${identifier}` });
+    }
+    if (autoOpenSettings.cs2tracker) {
+      chrome.tabs.create({ url: `https://cs2tracker.gg/profile/${identifier}` });
+    }
+    if (autoOpenSettings.faceit) {
+      chrome.tabs.create({ url: `https://faceitfinder.com/profile/${identifier}` });
+    }
+    if (autoOpenSettings.leetify) {
+      chrome.tabs.create({ url: `https://leetify.com/app/profile/${identifier}` });
+    }
+  }
 
   // Render quick tags in main popup
   function renderQuickTags() {
@@ -324,6 +375,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     profileInput.classList.remove('error');
     playerNote.value = '';
     noteStatus.textContent = '';
+    lastAutoOpenedId = null;
     profileInput.focus();
   });
 
@@ -337,7 +389,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         profileInput.value = cleaned;
         errorMsg.classList.add('hidden');
         profileInput.classList.remove('error');
-        loadNoteForIdentifier(extractSteamIdentifier(cleaned));
+        const identifier = extractSteamIdentifier(cleaned);
+        loadNoteForIdentifier(identifier);
+        triggerAutoOpen(identifier);
       } else {
         alert(dict.clipboardEmpty);
       }
@@ -356,7 +410,9 @@ document.addEventListener('DOMContentLoaded', async () => {
           profileInput.value = url;
           errorMsg.classList.add('hidden');
           profileInput.classList.remove('error');
-          loadNoteForIdentifier(extractSteamIdentifier(url));
+          const identifier = extractSteamIdentifier(url);
+          loadNoteForIdentifier(identifier);
+          triggerAutoOpen(identifier);
         } else {
           alert(dict.notSteamTab);
         }
@@ -369,7 +425,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const identifier = extractSteamIdentifier(rawValue);
 
     if (!identifier) {
-      errorMsg.classList.remove('hidden');
+      errorMsg.classList.add('hidden');
       profileInput.classList.add('error');
       return;
     }
@@ -405,6 +461,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     const identifier = extractSteamIdentifier(profileInput.value);
     loadNoteForIdentifier(identifier);
+    
+    // Trigger auto-open if input is a valid 17-digit SteamID or valid URL
+    if (identifier && (/^\d{17}$/.test(identifier) || profileInput.value.includes('steamcommunity.com'))) {
+      triggerAutoOpen(identifier);
+    }
   });
 
   // Note auto-save with debounce (500ms)
@@ -456,11 +517,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Export notes
   exportBtn.addEventListener('click', () => {
     storage.get(null, (items) => {
-      // Filter out internal settings keys from backup if desired, or export all
       const exportData = { ...items };
       delete exportData.custom_tags;
       delete exportData.language;
       delete exportData.auto_paste;
+      delete exportData.auto_open_trackers;
 
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
       const downloadAnchor = document.createElement('a');
@@ -509,8 +570,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const dict = i18n[currentLang] || i18n.ru;
 
     storage.get(null, (items) => {
-      // Exclude settings keys
-      const excludeKeys = ['custom_tags', 'language', 'auto_paste'];
+      const excludeKeys = ['custom_tags', 'language', 'auto_paste', 'auto_open_trackers'];
       const keys = Object.keys(items).filter(k => !excludeKeys.includes(k));
       const query = filterQuery.toLowerCase();
 
@@ -535,6 +595,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         itemEl.addEventListener('click', () => {
           profileInput.value = key;
           loadNoteForIdentifier(key);
+          triggerAutoOpen(key);
           allNotesModal.classList.add('hidden');
         });
         notesListContainer.appendChild(itemEl);
