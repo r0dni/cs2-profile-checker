@@ -1,11 +1,14 @@
 :root {
   --bg-primary: #12141a;
   --bg-secondary: #1a1e29;
-  --accent-color: #ff9900;
-  --accent-hover: #ffaa1a;
+  --accent-orange: #ff9900;
+  --accent-orange-hover: #ffaa1a;
+  --accent-blue: #00b4d8;
+  --accent-blue-hover: #0096b4;
   --text-primary: #ffffff;
   --text-secondary: #9ba1a6;
   --border-color: #2a303c;
+  --error-color: #ff4d4d;
 }
 
 body {
@@ -26,7 +29,7 @@ header h1 {
   margin: 0 0 16px 0;
   font-size: 18px;
   font-weight: 700;
-  color: var(--accent-color);
+  color: var(--accent-orange);
   text-align: center;
   letter-spacing: 0.5px;
   text-transform: uppercase;
@@ -36,6 +39,7 @@ header h1 {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  margin-bottom: 16px;
 }
 
 label {
@@ -56,35 +60,57 @@ input[type="text"] {
 }
 
 input[type="text"]:focus {
-  border-color: var(--accent-color);
+  border-color: var(--accent-orange);
 }
 
-button {
-  background-color: var(--accent-color);
-  color: #12141a;
+input[type="text"].error {
+  border-color: var(--error-color);
+}
+
+.error-msg {
+  font-size: 11px;
+  color: var(--error-color);
+  margin-top: 2px;
+}
+
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.tracker-btn {
   border: none;
   border-radius: 6px;
   padding: 10px;
   font-weight: 700;
-  font-size: 14px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-  margin-top: 4px;
-  text-transform: uppercase;
-}
-
-button:hover {
-  background-color: var(--accent-hover);
-}
-
-.result-container {
-  margin-top: 16px;
-  padding: 12px;
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  border-radius: 6px;
   font-size: 13px;
-  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.2s, transform 0.1s;
+  text-transform: uppercase;
+  color: #12141a;
+  text-align: center;
+}
+
+.tracker-btn:active {
+  transform: scale(0.98);
+}
+
+.cstracker {
+  background-color: var(--accent-orange);
+}
+
+.cstracker:hover {
+  background-color: var(--accent-orange-hover);
+}
+
+.cs2tracker {
+  background-color: var(--accent-blue);
+  color: #ffffff;
+}
+
+.cs2tracker:hover {
+  background-color: var(--accent-blue-hover);
 }
 
 .hidden {

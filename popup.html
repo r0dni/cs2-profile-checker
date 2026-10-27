@@ -14,11 +14,12 @@
     <main>
       <div class="input-group">
         <label for="profileInput">Steam ID / Profile URL</label>
-        <input type="text" id="profileInput" placeholder="Enter Steam64 ID or Profile URL...">
-        <button id="checkBtn">Check Profile</button>
+        <input type="text" id="profileInput" placeholder="Paste Steam profile URL or ID...">
+        <div id="errorMsg" class="error-msg hidden">Please enter a valid Steam ID or URL.</div>
       </div>
-      <div id="resultContainer" class="result-container hidden">
-        <!-- Results will be displayed here -->
+      <div class="button-group">
+        <button id="cstrackerBtn" class="tracker-btn cstracker">Open on CSTracker</button>
+        <button id="cs2trackerBtn" class="tracker-btn cs2tracker">Open on CS2Tracker</button>
       </div>
     </main>
   </div>

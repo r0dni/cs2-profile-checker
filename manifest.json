@@ -1,10 +1,11 @@
 {
   "manifest_version": 3,
   "name": "CS2 Profile Checker",
-  "version": "1.0.0",
-  "description": "Quickly check CS2 player profiles and statistics directly from Chrome.",
+  "version": "1.1.0",
+  "description": "Quickly check CS2 player profiles and statistics on CSTracker and CS2Tracker.",
   "permissions": [
-    "activeTab"
+    "activeTab",
+    "clipboardRead"
   ],
   "action": {
     "default_popup": "popup.html",
