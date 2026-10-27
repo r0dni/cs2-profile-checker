@@ -1,13 +1,16 @@
 {
   "manifest_version": 3,
   "name": "CS2 Profile Checker",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Quickly check CS2 player profiles, trackers, sync notes, custom tags, auto-open, and i18n.",
   "permissions": [
     "activeTab",
     "tabs",
     "clipboardRead",
     "storage"
+  ],
+  "host_permissions": [
+    "https://steamcommunity.com/*"
   ],
   "icons": {
     "16": "icons/icon16.png",

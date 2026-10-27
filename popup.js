@@ -118,23 +118,46 @@ const storage = {
   }
 };
 
-function extractSteamIdentifier(input) {
+async function resolveToSteamID64(input) {
   if (!input) return null;
   input = input.trim();
   if (!input) return null;
 
+  let rawId = input;
   try {
     const url = new URL(input);
     if (url.hostname.includes('steamcommunity.com')) {
       const parts = url.pathname.split('/').filter(Boolean);
-      // e.g. /profiles/76561198... or /id/Rodni
-      if (parts.length >= 2 && (parts[0] === 'profiles' || parts[0] === 'id')) {
-        return parts[1];
+      if (parts.length >= 2) {
+        if (parts[0] === 'profiles') {
+          return parts[1];
+        }
+        if (parts[0] === 'id') {
+          rawId = parts[1];
+        }
       }
     }
   } catch (e) {}
 
-  return input.replace(/\/+$/, '');
+  if (/^\d{17}$/.test(rawId)) {
+    return rawId;
+  }
+
+  // Fetch Steam XML API for customURL
+  try {
+    const response = await fetch(`https://steamcommunity.com/id/${rawId}/?xml=1`);
+    const xmlText = await response.text();
+    const parser = new DOMParser();
+    const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+    const steamID64Node = xmlDoc.getElementsByTagName('steamID64')[0];
+    if (steamID64Node && steamID64Node.textContent) {
+      return steamID64Node.textContent.trim();
+    }
+  } catch (err) {
+    console.error('Failed to resolve customURL via Steam XML API:', err);
+  }
+
+  return rawId;
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -185,6 +208,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   let debounceTimer = null;
   let lastAutoOpenedId = null;
 
+  async function processInputAndLoad(inputVal, triggerOpen = false) {
+    const resolvedId = await resolveToSteamID64(inputVal);
+    if (resolvedId) {
+      loadNoteForIdentifier(resolvedId);
+      if (triggerOpen) {
+        triggerAutoOpen(resolvedId);
+      }
+    }
+    return resolvedId;
+  }
+
   // Load settings & apply i18n
   storage.get(['language', 'auto_paste', 'auto_open_trackers', 'custom_tags'], async (res) => {
     if (res.language) currentLang = res.language;
@@ -211,9 +245,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           const cleaned = clipboardText.trim();
           if (cleaned.includes('steamcommunity.com') || /^\d{17}$/.test(cleaned) || /^[a-zA-Z0-9_-]{3,}$/.test(cleaned)) {
             profileInput.value = cleaned;
-            const identifier = extractSteamIdentifier(cleaned);
-            loadNoteForIdentifier(identifier);
-            triggerAutoOpen(identifier);
+            await processInputAndLoad(cleaned, true);
           }
         }
       } catch (err) {}
@@ -390,9 +422,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         profileInput.value = cleaned;
         errorMsg.classList.add('hidden');
         profileInput.classList.remove('error');
-        const identifier = extractSteamIdentifier(cleaned);
-        loadNoteForIdentifier(identifier);
-        triggerAutoOpen(identifier);
+        await processInputAndLoad(cleaned, true);
       } else {
         alert(dict.clipboardEmpty);
       }
@@ -404,16 +434,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Active tab URL reader
   tabUrlBtn.addEventListener('click', () => {
     const dict = i18n[currentLang] || i18n.ru;
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       if (tabs && tabs[0] && tabs[0].url) {
         const url = tabs[0].url;
         if (url.includes('steamcommunity.com')) {
           profileInput.value = url;
           errorMsg.classList.add('hidden');
           profileInput.classList.remove('error');
-          const identifier = extractSteamIdentifier(url);
-          loadNoteForIdentifier(identifier);
-          triggerAutoOpen(identifier);
+          await processInputAndLoad(url, true);
         } else {
           alert(dict.notSteamTab);
         }
@@ -421,12 +449,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  function handleRedirect(urlBuilder) {
+  async function handleRedirect(urlBuilder) {
     const rawValue = profileInput.value;
-    const identifier = extractSteamIdentifier(rawValue);
+    const identifier = await resolveToSteamID64(rawValue);
 
     if (!identifier) {
-      errorMsg.classList.add('hidden');
+      errorMsg.classList.remove('hidden');
       profileInput.classList.add('error');
       return;
     }
@@ -438,41 +466,41 @@ document.addEventListener('DOMContentLoaded', async () => {
     chrome.tabs.create({ url: targetUrl });
   }
 
-  cstrackerBtn.addEventListener('click', () => {
-    handleRedirect(id => `https://cstracker.gg/players/${id}`);
+  cstrackerBtn.addEventListener('click', async () => {
+    await handleRedirect(id => `https://cstracker.gg/players/${id}`);
   });
 
-  cs2trackerBtn.addEventListener('click', () => {
-    handleRedirect(id => `https://cs2tracker.gg/stats/${id}`);
+  cs2trackerBtn.addEventListener('click', async () => {
+    await handleRedirect(id => `https://cs2tracker.gg/stats/${id}`);
   });
 
-  faceitFinderBtn.addEventListener('click', () => {
-    handleRedirect(id => `https://faceitfinder.com/profile/${id}`);
+  faceitFinderBtn.addEventListener('click', async () => {
+    await handleRedirect(id => `https://faceitfinder.com/profile/${id}`);
   });
 
-  csstatsBtn.addEventListener('click', () => {
-    handleRedirect(id => `https://csstats.gg/player/${id}`);
+  csstatsBtn.addEventListener('click', async () => {
+    await handleRedirect(id => `https://csstats.gg/player/${id}`);
   });
 
   // Profile input change handler
-  profileInput.addEventListener('input', () => {
+  profileInput.addEventListener('input', async () => {
     if (errorMsg && !errorMsg.classList.contains('hidden')) {
       errorMsg.classList.add('hidden');
       profileInput.classList.remove('error');
     }
-    const identifier = extractSteamIdentifier(profileInput.value);
+    const val = profileInput.value;
+    const identifier = await resolveToSteamID64(val);
     loadNoteForIdentifier(identifier);
     
-    // Trigger auto-open if input is a valid 17-digit SteamID or valid URL
-    if (identifier && (/^\d{17}$/.test(identifier) || profileInput.value.includes('steamcommunity.com'))) {
+    if (identifier && (/^\d{17}$/.test(identifier) || val.includes('steamcommunity.com'))) {
       triggerAutoOpen(identifier);
     }
   });
 
   // Note auto-save with debounce (500ms)
-  playerNote.addEventListener('input', () => {
+  playerNote.addEventListener('input', async () => {
     const dict = i18n[currentLang] || i18n.ru;
-    const identifier = extractSteamIdentifier(profileInput.value);
+    const identifier = await resolveToSteamID64(profileInput.value);
     if (!identifier) {
       noteStatus.textContent = dict.enterIdStatus;
       return;
@@ -495,9 +523,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   });
 
   // Delete note button
-  deleteNoteBtn.addEventListener('click', () => {
+  deleteNoteBtn.addEventListener('click', async () => {
     const dict = i18n[currentLang] || i18n.ru;
-    const identifier = extractSteamIdentifier(profileInput.value);
+    const identifier = await resolveToSteamID64(profileInput.value);
     if (!identifier) {
       playerNote.value = '';
       noteStatus.textContent = '';
@@ -545,13 +573,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const importedData = JSON.parse(e.target.result);
         if (typeof importedData === 'object' && importedData !== null) {
-          storage.set(importedData, () => {
+          storage.set(importedData, async () => {
             alert(dict.importedSuccess);
-            const identifier = extractSteamIdentifier(profileInput.value);
+            const identifier = await resolveToSteamID64(profileInput.value);
             loadNoteForIdentifier(identifier);
           });
         } else {
