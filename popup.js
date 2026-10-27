@@ -23,11 +23,14 @@ function extractSteamIdentifier(input) {
 
 document.addEventListener('DOMContentLoaded', async () => {
   const profileInput = document.getElementById('profileInput');
+  const clearInputBtn = document.getElementById('clearInputBtn');
   const errorMsg = document.getElementById('errorMsg');
   const pasteClipboardBtn = document.getElementById('pasteClipboardBtn');
   const tabUrlBtn = document.getElementById('tabUrlBtn');
   const cstrackerBtn = document.getElementById('cstrackerBtn');
   const cs2trackerBtn = document.getElementById('cs2trackerBtn');
+  const faceitFinderBtn = document.getElementById('faceitFinderBtn');
+  const leetifyBtn = document.getElementById('leetifyBtn');
   const playerNote = document.getElementById('playerNote');
   const noteStatus = document.getElementById('noteStatus');
   const deleteNoteBtn = document.getElementById('deleteNoteBtn');
@@ -35,6 +38,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const exportBtn = document.getElementById('exportBtn');
   const importBtn = document.getElementById('importBtn');
   const importFileInput = document.getElementById('importFileInput');
+  const viewAllNotesBtn = document.getElementById('viewAllNotesBtn');
+  const allNotesModal = document.getElementById('allNotesModal');
+  const closeModalBtn = document.getElementById('closeModalBtn');
+  const modalSearchInput = document.getElementById('modalSearchInput');
+  const notesListContainer = document.getElementById('notesListContainer');
 
   let debounceTimer = null;
 
@@ -72,6 +80,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (profileInput.value) {
     loadNoteForIdentifier(extractSteamIdentifier(profileInput.value));
   }
+
+  // Clear input button
+  clearInputBtn.addEventListener('click', () => {
+    profileInput.value = '';
+    errorMsg.classList.add('hidden');
+    profileInput.classList.remove('error');
+    playerNote.value = '';
+    noteStatus.textContent = '';
+    profileInput.focus();
+  });
 
   // Manual paste from clipboard button
   pasteClipboardBtn.addEventListener('click', async () => {
@@ -113,7 +131,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const identifier = extractSteamIdentifier(rawValue);
 
     if (!identifier) {
-      errorMsg.classList.add('hidden');
+      errorMsg.classList.remove('hidden');
       profileInput.classList.add('error');
       return;
     }
@@ -131,6 +149,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   cs2trackerBtn.addEventListener('click', () => {
     handleRedirect(id => `https://cs2tracker.gg/profile/${id}`);
+  });
+
+  faceitFinderBtn.addEventListener('click', () => {
+    handleRedirect(id => `https://faceitfinder.com/profile/${id}`);
+  });
+
+  leetifyBtn.addEventListener('click', () => {
+    handleRedirect(id => `https://leetify.com/app/profile/${id}`);
   });
 
   // Profile input change handler
@@ -238,5 +264,60 @@ document.addEventListener('DOMContentLoaded', async () => {
       importFileInput.value = '';
     };
     reader.readAsText(file);
+  });
+
+  // All Notes Viewer Modal logic
+  function renderNotesList(filterQuery = '') {
+    notesListContainer.innerHTML = '';
+    chrome.storage.local.get(null, (items) => {
+      const keys = Object.keys(items);
+      const query = filterQuery.toLowerCase();
+
+      const filteredKeys = keys.filter(key => {
+        const note = items[key] || '';
+        return key.toLowerCase().includes(query) || note.toLowerCase().includes(query);
+      });
+
+      if (filteredKeys.length === 0) {
+        notesListContainer.innerHTML = '<div class="no-notes">Заметки не найдены</div>';
+        return;
+      }
+
+      filteredKeys.forEach(key => {
+        const noteText = items[key];
+        const itemEl = document.createElement('div');
+        itemEl.className = 'note-item';
+        itemEl.innerHTML = `
+          <div class="note-item-id">${key}</div>
+          <div class="note-item-text">${noteText}</div>
+        `;
+        itemEl.addEventListener('click', () => {
+          profileInput.value = key;
+          loadNoteForIdentifier(key);
+          allNotesModal.classList.add('hidden');
+        });
+        notesListContainer.appendChild(itemEl);
+      });
+    });
+  }
+
+  viewAllNotesBtn.addEventListener('click', () => {
+    modalSearchInput.value = '';
+    renderNotesList();
+    allNotesModal.classList.remove('hidden');
+  });
+
+  closeModalBtn.addEventListener('click', () => {
+    allNotesModal.classList.add('hidden');
+  });
+
+  allNotesModal.addEventListener('click', (e) => {
+    if (e.target === allNotesModal) {
+      allNotesModal.classList.add('hidden');
+    }
+  });
+
+  modalSearchInput.addEventListener('input', () => {
+    renderNotesList(modalSearchInput.value);
   });
 });

@@ -16,6 +16,7 @@
         <label for="profileInput">Steam ID / Profile URL</label>
         <div class="input-row">
           <input type="text" id="profileInput" placeholder="Paste Steam profile URL or ID...">
+          <button id="clearInputBtn" class="action-btn" title="Очистить поле">✕</button>
           <div class="input-actions">
             <button id="pasteClipboardBtn" class="icon-btn" title="Вставить из буфера обмена">📋</button>
             <button id="tabUrlBtn" class="icon-btn" title="Взять URL из вкладки">🌐</button>
@@ -25,18 +26,20 @@
       </div>
 
       <div class="section-title">Trackers</div>
-      <div class="button-group">
-        <button id="cstrackerBtn" class="tracker-btn cstracker">Open on CSTracker</button>
-        <button id="cs2trackerBtn" class="tracker-btn cs2tracker">Open on CS2Tracker</button>
+      <div class="button-group trackers-grid">
+        <button id="cstrackerBtn" class="tracker-btn cstracker">CSTracker</button>
+        <button id="cs2trackerBtn" class="tracker-btn cs2tracker">CS2Tracker</button>
+        <button id="faceitFinderBtn" class="tracker-btn faceit">Faceit Finder</button>
+        <button id="leetifyBtn" class="tracker-btn leetify">Leetify</button>
       </div>
 
       <div class="section-title">Player Note</div>
       <div class="note-container">
         <div class="tags-container">
-          <button type="button" class="tag-btn" data-tag="Софт">Софт</button>
-          <button type="button" class="tag-btn" data-tag="Токсик">Токсик</button>
-          <button type="button" class="tag-btn" data-tag="Твинк">Твинк</button>
-          <button type="button" class="tag-btn" data-tag="Хороший игрок">Хороший игрок</button>
+          <button type="button" class="tag-btn" data-color="danger" data-tag="Софт">Софт</button>
+          <button type="button" class="tag-btn" data-color="danger" data-tag="Токсик">Токсик</button>
+          <button type="button" class="tag-btn" data-color="warning" data-tag="Твинк">Твинк</button>
+          <button type="button" class="tag-btn" data-color="success" data-tag="Хороший игрок">Хороший игрок</button>
         </div>
         <textarea id="playerNote" rows="3" placeholder="Заметка по игроку (подозрение в софте, твинк, смайкер...)"></textarea>
         <div class="note-footer">
@@ -50,8 +53,28 @@
         <button id="importBtn" class="data-btn">📤 Импорт</button>
         <input type="file" id="importFileInput" accept=".json" style="display: none;">
       </div>
+      <div class="viewer-action">
+        <button id="viewAllNotesBtn" class="data-btn full-width">📋 Все заметки</button>
+      </div>
     </main>
   </div>
+
+  <!-- Modal for viewing all notes -->
+  <div id="allNotesModal" class="modal hidden">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Сохраненные заметки</h2>
+        <button id="closeModalBtn" class="close-btn">✕</button>
+      </div>
+      <div class="modal-search">
+        <input type="text" id="modalSearchInput" placeholder="Поиск по SteamID или заметке...">
+      </div>
+      <div id="notesListContainer" class="notes-list">
+        <!-- Notes dynamically populated here -->
+      </div>
+    </div>
+  </div>
+
   <script src="popup.js"></script>
 </body>
 </html>
