@@ -33,6 +33,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   const playerNote = document.getElementById('playerNote');
   const noteStatus = document.getElementById('noteStatus');
   const deleteNoteBtn = document.getElementById('deleteNoteBtn');
+  const tagBtns = document.querySelectorAll('.tag-btn');
+  const exportBtn = document.getElementById('exportBtn');
+  const importBtn = document.getElementById('importBtn');
+  const importFileInput = document.getElementById('importFileInput');
 
   let debounceTimer = null;
 
@@ -179,6 +183,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     loadNoteForIdentifier(identifier);
   });
 
+  // Quick tags handling
+  tagBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tag = btn.getAttribute('data-tag');
+      const current = playerNote.value.trim();
+      playerNote.value = current ? `${current}, ${tag}` : tag;
+      playerNote.dispatchEvent(new Event('input'));
+    });
+  });
+
   // Note auto-save with debounce (500ms)
   playerNote.addEventListener('input', () => {
     const identifier = extractSteamIdentifier(profileInput.value);
@@ -221,5 +235,48 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
       }, 2000);
     });
+  });
+
+  // Export notes
+  exportBtn.addEventListener('click', () => {
+    chrome.storage.local.get(null, (items) => {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(items, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", "cs2_notes_backup.json");
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    });
+  });
+
+  // Import notes
+  importBtn.addEventListener('click', () => {
+    importFileInput.click();
+  });
+
+  importFileInput.addEventListener('change', (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const importedData = JSON.parse(e.target.result);
+        if (typeof importedData === 'object' && importedData !== null) {
+          chrome.storage.local.set(importedData, () => {
+            alert('Заметки успешно импортированы!');
+            const identifier = extractSteamIdentifier(profileInput.value);
+            loadNoteForIdentifier(identifier);
+          });
+        } else {
+          alert('Неверный формат файла бэкапа.');
+        }
+      } catch (err) {
+        alert('Ошибка при чтении JSON файла.');
+      }
+      importFileInput.value = '';
+    };
+    reader.readAsText(file);
   });
 });

@@ -38,11 +38,23 @@
 
       <div class="section-title">Player Note</div>
       <div class="note-container">
+        <div class="tags-container">
+          <button type="button" class="tag-btn" data-tag="Твинк">Твинк</button>
+          <button type="button" class="tag-btn" data-tag="Софт">Софт</button>
+          <button type="button" class="tag-btn" data-tag="Смайкер">Смайкер</button>
+          <button type="button" class="tag-btn" data-tag="Хороший игрок">Хороший игрок</button>
+        </div>
         <textarea id="playerNote" rows="3" placeholder="Заметка по игроку (подозрение в софте, твинк, смайкер...)"></textarea>
         <div class="note-footer">
           <span id="noteStatus" class="note-status"></span>
           <button id="deleteNoteBtn" class="delete-btn">Удалить заметку</button>
         </div>
+      </div>
+
+      <div class="data-actions">
+        <button id="exportBtn" class="data-btn">📥 Экспорт</button>
+        <button id="importBtn" class="data-btn">📤 Импорт</button>
+        <input type="file" id="importFileInput" accept=".json" style="display: none;">
       </div>
     </main>
   </div>
