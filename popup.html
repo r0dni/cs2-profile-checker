@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CS2 Profile Checker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>CS2 Profile Checker</h1>
+    </header>
+    <main>
+      <div class="input-group">
+        <label for="profileInput">Steam ID / Profile URL</label>
+        <input type="text" id="profileInput" placeholder="Enter Steam64 ID or Profile URL...">
+        <button id="checkBtn">Check Profile</button>
+      </div>
+      <div id="resultContainer" class="result-container hidden">
+        <!-- Results will be displayed here -->
+      </div>
+    </main>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
