@@ -14,12 +14,23 @@
     <main>
       <div class="input-group">
         <label for="profileInput">Steam ID / Profile URL</label>
-        <input type="text" id="profileInput" placeholder="Paste Steam profile URL or ID...">
+        <div class="input-row">
+          <input type="text" id="profileInput" placeholder="Paste Steam profile URL or ID...">
+          <button id="tabUrlBtn" class="icon-btn" title="Paste URL from active tab">🌐</button>
+        </div>
         <div id="errorMsg" class="error-msg hidden">Please enter a valid Steam ID or URL.</div>
       </div>
+
+      <div class="section-title">Trackers</div>
       <div class="button-group">
         <button id="cstrackerBtn" class="tracker-btn cstracker">Open on CSTracker</button>
         <button id="cs2trackerBtn" class="tracker-btn cs2tracker">Open on CS2Tracker</button>
+      </div>
+
+      <div class="section-title">Fast Mirrors</div>
+      <div class="button-group mirror-group">
+        <button id="mirrorCxBtn" class="tracker-btn mirror-cx">Open via .cx</button>
+        <button id="mirrorTipsBtn" class="tracker-btn mirror-tips">Open via .tips</button>
       </div>
     </main>
   </div>

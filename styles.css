@@ -5,6 +5,10 @@
   --accent-orange-hover: #ffaa1a;
   --accent-blue: #00b4d8;
   --accent-blue-hover: #0096b4;
+  --accent-green: #2ecc71;
+  --accent-green-hover: #27ae60;
+  --accent-purple: #9b59b6;
+  --accent-purple-hover: #8e44ad;
   --text-primary: #ffffff;
   --text-secondary: #9ba1a6;
   --border-color: #2a303c;
@@ -14,7 +18,7 @@
 body {
   margin: 0;
   padding: 0;
-  width: 350px;
+  width: 360px;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   background-color: var(--bg-primary);
   color: var(--text-primary);
@@ -38,8 +42,8 @@ header h1 {
 .input-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 6px;
+  margin-bottom: 14px;
 }
 
 label {
@@ -48,13 +52,19 @@ label {
   font-weight: 500;
 }
 
+.input-row {
+  display: flex;
+  gap: 8px;
+}
+
 input[type="text"] {
+  flex: 1;
   background-color: var(--bg-secondary);
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  padding: 10px 12px;
+  padding: 9px 12px;
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 13px;
   outline: none;
   transition: border-color 0.2s;
 }
@@ -67,6 +77,34 @@ input[type="text"].error {
   border-color: var(--error-color);
 }
 
+.icon-btn {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  width: 38px;
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+.icon-btn:hover {
+  background-color: var(--border-color);
+  border-color: var(--text-secondary);
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  margin-top: 12px;
+}
+
 .error-msg {
   font-size: 11px;
   color: var(--error-color);
@@ -76,15 +114,21 @@ input[type="text"].error {
 .button-group {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
+}
+
+.mirror-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
 }
 
 .tracker-btn {
   border: none;
   border-radius: 6px;
-  padding: 10px;
+  padding: 9px 12px;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 12px;
   cursor: pointer;
   transition: background-color 0.2s, transform 0.1s;
   text-transform: uppercase;
@@ -98,6 +142,7 @@ input[type="text"].error {
 
 .cstracker {
   background-color: var(--accent-orange);
+  color: #12141a;
 }
 
 .cstracker:hover {
@@ -111,6 +156,24 @@ input[type="text"].error {
 
 .cs2tracker:hover {
   background-color: var(--accent-blue-hover);
+}
+
+.mirror-cx {
+  background-color: var(--accent-green);
+  color: #12141a;
+}
+
+.mirror-cx:hover {
+  background-color: var(--accent-green-hover);
+}
+
+.mirror-tips {
+  background-color: var(--accent-purple);
+  color: #ffffff;
+}
+
+.mirror-tips:hover {
+  background-color: var(--accent-purple-hover);
 }
 
 .hidden {
