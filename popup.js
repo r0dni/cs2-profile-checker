@@ -29,6 +29,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   const cs2trackerBtn = document.getElementById('cs2trackerBtn');
   const mirrorCxBtn = document.getElementById('mirrorCxBtn');
   const mirrorTipsBtn = document.getElementById('mirrorTipsBtn');
+  const playerNote = document.getElementById('playerNote');
+  const noteStatus = document.getElementById('noteStatus');
+  const deleteNoteBtn = document.getElementById('deleteNoteBtn');
+
+  let debounceTimer = null;
+
+  function loadNoteForIdentifier(identifier) {
+    if (!identifier) {
+      playerNote.value = '';
+      noteStatus.textContent = '';
+      return;
+    }
+    chrome.storage.local.get([identifier], (result) => {
+      if (result && result[identifier]) {
+        playerNote.value = result[identifier];
+        noteStatus.textContent = '';
+      } else {
+        playerNote.value = '';
+        noteStatus.textContent = '';
+      }
+    });
+  }
 
   // Automatically read from clipboard on load if applicable
   try {
@@ -43,6 +65,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Clipboard permission or access denied, ignore silently
   }
 
+  // Load note for initial input value (if any)
+  if (profileInput.value) {
+    loadNoteForIdentifier(extractSteamIdentifier(profileInput.value));
+  }
+
   // Active tab URL reader
   tabUrlBtn.addEventListener('click', () => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -52,6 +79,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           profileInput.value = url;
           errorMsg.classList.add('hidden');
           profileInput.classList.remove('error');
+          loadNoteForIdentifier(extractSteamIdentifier(url));
         } else {
           alert('Current active tab is not a Steam community profile page.');
         }
@@ -88,7 +116,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       const url = new URL(rawValue);
       if (url.hostname.includes('steamcommunity.')) {
-        // Replace current steamcommunity domain with the requested mirror domain
         url.hostname = url.hostname.replace(/steamcommunity\.[a-z.]+/, `steamcommunity.${domainExtension}`);
         targetUrl = url.toString();
       } else {
@@ -96,7 +123,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         targetUrl = url.toString();
       }
     } catch (e) {
-      // Raw ID or custom name
       const identifier = rawValue.replace(/\/+$/, '');
       const isSteamId64 = /^\d{17}$/.test(identifier);
       const pathType = isSteamId64 ? 'profiles' : 'id';
@@ -124,11 +150,57 @@ document.addEventListener('DOMContentLoaded', async () => {
     handleMirrorRedirect('tips');
   });
 
-  // Clear error on input change
+  // Profile input change handler
   profileInput.addEventListener('input', () => {
     if (errorMsg && !errorMsg.classList.contains('hidden')) {
       errorMsg.classList.add('hidden');
       profileInput.classList.remove('error');
     }
+    const identifier = extractSteamIdentifier(profileInput.value);
+    loadNoteForIdentifier(identifier);
+  });
+
+  // Note auto-save with debounce (500ms)
+  playerNote.addEventListener('input', () => {
+    const identifier = extractSteamIdentifier(profileInput.value);
+    if (!identifier) {
+      noteStatus.textContent = 'Введите ID игрока';
+      return;
+    }
+
+    const noteText = playerNote.value;
+    noteStatus.textContent = 'Сохранение...';
+
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      chrome.storage.local.set({ [identifier]: noteText }, () => {
+        noteStatus.textContent = 'Сохранено';
+        setTimeout(() => {
+          if (noteStatus.textContent === 'Сохранено') {
+            noteStatus.textContent = '';
+          }
+        }, 2000);
+      });
+    }, 500);
+  });
+
+  // Delete note button
+  deleteNoteBtn.addEventListener('click', () => {
+    const identifier = extractSteamIdentifier(profileInput.value);
+    if (!identifier) {
+      playerNote.value = '';
+      noteStatus.textContent = '';
+      return;
+    }
+
+    chrome.storage.local.remove(identifier, () => {
+      playerNote.value = '';
+      noteStatus.textContent = 'Удалено';
+      setTimeout(() => {
+        if (noteStatus.textContent === 'Удалено') {
+          noteStatus.textContent = '';
+        }
+      }, 2000);
+    });
   });
 });
