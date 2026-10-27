@@ -128,7 +128,7 @@ input[type="text"].error {
 .tracker-btn {
   border: 1px solid var(--border-color);
   border-radius: 6px;
-  padding: 8px 10px;
+  padding: 10px 14px;
   font-weight: 600;
   font-size: 11px;
   cursor: pointer;
@@ -139,7 +139,7 @@ input[type="text"].error {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 10px;
   text-decoration: none;
 }
 
@@ -148,9 +148,10 @@ input[type="text"].error {
 }
 
 .tracker-icon {
-  width: 14px;
-  height: 14px;
+  width: 22px;
+  height: 22px;
   object-fit: contain;
+  vertical-align: middle;
   border-radius: 2px;
 }
 

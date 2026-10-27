@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "CS2 Profile Checker",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Quickly check CS2 player profiles, trackers, color-coded notes, and viewer.",
   "permissions": [
     "activeTab",
