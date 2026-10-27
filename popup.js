@@ -127,6 +127,7 @@ function extractSteamIdentifier(input) {
     const url = new URL(input);
     if (url.hostname.includes('steamcommunity.com')) {
       const parts = url.pathname.split('/').filter(Boolean);
+      // e.g. /profiles/76561198... or /id/Rodni
       if (parts.length >= 2 && (parts[0] === 'profiles' || parts[0] === 'id')) {
         return parts[1];
       }
@@ -145,7 +146,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const cstrackerBtn = document.getElementById('cstrackerBtn');
   const cs2trackerBtn = document.getElementById('cs2trackerBtn');
   const faceitFinderBtn = document.getElementById('faceitFinderBtn');
-  const leetifyBtn = document.getElementById('leetifyBtn');
+  const csstatsBtn = document.getElementById('csstatsBtn');
   const playerNote = document.getElementById('playerNote');
   const noteStatus = document.getElementById('noteStatus');
   const deleteNoteBtn = document.getElementById('deleteNoteBtn');
@@ -170,7 +171,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const autoOpenCstracker = document.getElementById('autoOpenCstracker');
   const autoOpenCs2tracker = document.getElementById('autoOpenCs2tracker');
   const autoOpenFaceit = document.getElementById('autoOpenFaceit');
-  const autoOpenLeetify = document.getElementById('autoOpenLeetify');
+  const autoOpenCsstats = document.getElementById('autoOpenCsstats');
 
   const customTagsList = document.getElementById('customTagsList');
   const newTagName = document.getElementById('newTagName');
@@ -179,7 +180,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   let currentLang = 'ru';
   let autoPasteEnabled = true;
-  let autoOpenSettings = { cstracker: false, cs2tracker: false, faceit: false, leetify: false };
+  let autoOpenSettings = { cstracker: false, cs2tracker: false, faceit: false, csstats: false };
   let customTags = [...DEFAULT_TAGS];
   let debounceTimer = null;
   let lastAutoOpenedId = null;
@@ -196,7 +197,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     autoOpenCstracker.checked = autoOpenSettings.cstracker;
     autoOpenCs2tracker.checked = autoOpenSettings.cs2tracker;
     autoOpenFaceit.checked = autoOpenSettings.faceit;
-    autoOpenLeetify.checked = autoOpenSettings.leetify;
+    autoOpenCsstats.checked = autoOpenSettings.csstats;
 
     applyI18n(currentLang);
     renderQuickTags();
@@ -253,7 +254,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       cstracker: autoOpenCstracker.checked,
       cs2tracker: autoOpenCs2tracker.checked,
       faceit: autoOpenFaceit.checked,
-      leetify: autoOpenLeetify.checked
+      csstats: autoOpenCsstats.checked
     };
     storage.set({ auto_open_trackers: autoOpenSettings });
   }
@@ -261,7 +262,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   autoOpenCstracker.addEventListener('change', saveAutoOpenSettings);
   autoOpenCs2tracker.addEventListener('change', saveAutoOpenSettings);
   autoOpenFaceit.addEventListener('change', saveAutoOpenSettings);
-  autoOpenLeetify.addEventListener('change', saveAutoOpenSettings);
+  autoOpenCsstats.addEventListener('change', saveAutoOpenSettings);
 
   // Settings modal toggle
   settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
@@ -275,16 +276,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     lastAutoOpenedId = identifier;
 
     if (autoOpenSettings.cstracker) {
-      chrome.tabs.create({ url: `https://cstracker.gg/profile/steam/${identifier}` });
+      chrome.tabs.create({ url: `https://cstracker.gg/players/${identifier}` });
     }
     if (autoOpenSettings.cs2tracker) {
-      chrome.tabs.create({ url: `https://cs2tracker.gg/profile/${identifier}` });
+      chrome.tabs.create({ url: `https://cs2tracker.gg/stats/${identifier}` });
     }
     if (autoOpenSettings.faceit) {
       chrome.tabs.create({ url: `https://faceitfinder.com/profile/${identifier}` });
     }
-    if (autoOpenSettings.leetify) {
-      chrome.tabs.create({ url: `https://leetify.com/app/profile/${identifier}` });
+    if (autoOpenSettings.csstats) {
+      chrome.tabs.create({ url: `https://csstats.gg/player/${identifier}` });
     }
   }
 
@@ -438,19 +439,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   cstrackerBtn.addEventListener('click', () => {
-    handleRedirect(id => `https://cstracker.gg/profile/steam/${id}`);
+    handleRedirect(id => `https://cstracker.gg/players/${id}`);
   });
 
   cs2trackerBtn.addEventListener('click', () => {
-    handleRedirect(id => `https://cs2tracker.gg/profile/${id}`);
+    handleRedirect(id => `https://cs2tracker.gg/stats/${id}`);
   });
 
   faceitFinderBtn.addEventListener('click', () => {
     handleRedirect(id => `https://faceitfinder.com/profile/${id}`);
   });
 
-  leetifyBtn.addEventListener('click', () => {
-    handleRedirect(id => `https://leetify.com/app/profile/${id}`);
+  csstatsBtn.addEventListener('click', () => {
+    handleRedirect(id => `https://csstats.gg/player/${id}`);
   });
 
   // Profile input change handler
