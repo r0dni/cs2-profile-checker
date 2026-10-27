@@ -16,7 +16,10 @@
         <label for="profileInput">Steam ID / Profile URL</label>
         <div class="input-row">
           <input type="text" id="profileInput" placeholder="Paste Steam profile URL or ID...">
-          <button id="tabUrlBtn" class="icon-btn" title="Paste URL from active tab">🌐</button>
+          <div class="input-actions">
+            <button id="pasteClipboardBtn" class="icon-btn" title="Вставить из буфера обмена">📋</button>
+            <button id="tabUrlBtn" class="icon-btn" title="Взять URL из вкладки">🌐</button>
+          </div>
         </div>
         <div id="errorMsg" class="error-msg hidden">Please enter a valid Steam ID or URL.</div>
       </div>

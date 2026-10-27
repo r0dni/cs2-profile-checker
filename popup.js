@@ -24,6 +24,7 @@ function extractSteamIdentifier(input) {
 document.addEventListener('DOMContentLoaded', async () => {
   const profileInput = document.getElementById('profileInput');
   const errorMsg = document.getElementById('errorMsg');
+  const pasteClipboardBtn = document.getElementById('pasteClipboardBtn');
   const tabUrlBtn = document.getElementById('tabUrlBtn');
   const cstrackerBtn = document.getElementById('cstrackerBtn');
   const cs2trackerBtn = document.getElementById('cs2trackerBtn');
@@ -69,6 +70,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (profileInput.value) {
     loadNoteForIdentifier(extractSteamIdentifier(profileInput.value));
   }
+
+  // Manual paste from clipboard button
+  pasteClipboardBtn.addEventListener('click', async () => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text) {
+        const cleaned = text.trim();
+        profileInput.value = cleaned;
+        errorMsg.classList.add('hidden');
+        profileInput.classList.remove('error');
+        loadNoteForIdentifier(extractSteamIdentifier(cleaned));
+      } else {
+        alert('Буфер обмена пуст.');
+      }
+    } catch (err) {
+      alert('Не удалось прочитать буфер обмена. Разрешите доступ в браузере.');
+    }
+  });
 
   // Active tab URL reader
   tabUrlBtn.addEventListener('click', () => {
