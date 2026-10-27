@@ -21,7 +21,8 @@ const server = http.createServer((req, res) => {
   }
 
   if (req.method === 'GET' && req.url === '/status') {
-    if (Date.now() - lastHeartbeat > 10000) {
+    // 45 seconds timeout for connection status
+    if (Date.now() - lastHeartbeat > 45000) {
       latestMatchState.connected = false;
     }
 
@@ -57,17 +58,35 @@ const server = http.createServer((req, res) => {
           };
         }
 
-        if (data.allplayers) {
-          const players = [];
-          for (const [steamId, pInfo] of Object.entries(data.allplayers)) {
+        const playersMap = data.allplayers || data.allplayers_id || {};
+        const players = [];
+
+        for (const [steamId, pInfo] of Object.entries(playersMap)) {
+          if (steamId && steamId !== 'observer') {
             players.push({
               steamId: steamId,
-              name: pInfo.name || 'Unknown',
+              name: pInfo.name || (pInfo.observer_slot ? `Player #${pInfo.observer_slot}` : 'Unknown'),
               team: pInfo.team || 'unknown',
               observer_slot: pInfo.observer_slot || 0,
               stats: pInfo.match_stats || {}
             });
           }
+        }
+
+        if (data.player && data.player.steamid) {
+          const localSteamId = data.player.steamid;
+          if (!players.some(p => p.steamId === localSteamId)) {
+            players.push({
+              steamId: localSteamId,
+              name: data.player.name || 'You',
+              team: data.player.team || 'unknown',
+              observer_slot: data.player.observer_slot || 0,
+              stats: data.player.match_stats || {}
+            });
+          }
+        }
+
+        if (players.length > 0) {
           latestMatchState.players = players;
         }
 

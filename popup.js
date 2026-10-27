@@ -684,11 +684,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderNotesList(modalSearchInput.value);
   });
 
-  // GSI Polling
+  // GSI Polling (3 seconds interval)
   function startGsiPolling() {
     if (gsiPollInterval) clearInterval(gsiPollInterval);
     pollGsiState();
-    gsiPollInterval = setInterval(pollGsiState, 2000);
+    gsiPollInterval = setInterval(pollGsiState, 3000);
   }
 
   function stopGsiPolling() {
@@ -741,7 +741,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (tPlayers.length === 0) teamTList.innerHTML = '<div class="no-notes">-</div>';
     if (ctPlayers.length === 0) teamCTList.innerHTML = '<div class="no-notes">-</div>';
 
-    // Collect all steamIds to fetch notes in batch
     const steamIds = players.map(p => p.steamId);
     storage.get(steamIds, (notesMap) => {
       tPlayers.forEach(p => renderPlayerCard(p, teamTList, notesMap[p.steamId]));
