@@ -1,0 +1,24 @@
+{
+  "name": "cs2-profile-checker",
+  "version": "1.0.0",
+  "description": "[Читать на русском языке](#russian) | [Read in English](#english)",
+  "main": "popup.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/r0dni/cs2-profile-checker.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/r0dni/cs2-profile-checker/issues"
+  },
+  "homepage": "https://github.com/r0dni/cs2-profile-checker#readme",
+  "dependencies": {
+    "jimp": "^1.6.1"
+  }
+}
