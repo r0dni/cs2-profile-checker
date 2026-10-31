@@ -77,26 +77,23 @@ const server = http.createServer((req, res) => {
         }
 
         const playersMap = data.allplayers || data.allplayers_id || {};
-        if (Object.keys(playersMap).length > 0) {
-          for (const [steamId, pInfo] of Object.entries(playersMap)) {
-            if (steamId && steamId !== 'observer') {
-              const pState = pInfo.state || {};
-              const pStats = pInfo.match_stats || {};
-              sessionPlayers.set(steamId, {
-                steamId: steamId,
-                name: pInfo.name || (pInfo.observer_slot ? `Player #${pInfo.observer_slot}` : 'Unknown'),
-                team: pInfo.team || 'unknown',
-                observer_slot: pInfo.observer_slot || 0,
-                hp: pInfo.state?.health ?? 100,
-                money: pInfo.state?.money ?? 0,
-                kills: pInfo.match_stats?.kills ?? 0,
-                deaths: pInfo.match_stats?.deaths ?? 0,
-                assists: pInfo.match_stats?.assists ?? 0,
-                mvps: pInfo.match_stats?.mvps ?? (pInfo.mvps ?? 0),
-                stats: pStats
+        if (data.allplayers) {
+          sessionPlayers.clear();
+          Object.entries(data.allplayers).forEach(([steamid, playerData]) => {
+            if (steamid && steamid !== 'observer') {
+              sessionPlayers.set(steamid, {
+                steamid: steamid,
+                steamId: steamid,
+                name: playerData.name || 'Unknown',
+                team: playerData.team || 'CT',
+                hp: playerData.state?.health ?? 100,
+                money: playerData.state?.money ?? 0,
+                kills: playerData.match_stats?.kills ?? 0,
+                deaths: playerData.match_stats?.deaths ?? 0,
+                assists: playerData.match_stats?.assists ?? 0
               });
             }
-          }
+          });
         }
 
         if (data.player && data.player.steamid) {
@@ -104,20 +101,17 @@ const server = http.createServer((req, res) => {
           const pState = data.player.state || {};
           const pStats = data.player.match_stats || {};
           const localPlayerObj = {
+            steamid: localSteamId,
             steamId: localSteamId,
             name: data.player.name || 'You',
             team: data.player.team || 'unknown',
-            observer_slot: data.player.observer_slot || 0,
-            hp: pInfo.state?.health ?? 100,
-                money: pInfo.state?.money ?? 0,
-                kills: pInfo.match_stats?.kills ?? 0,
-                deaths: pInfo.match_stats?.deaths ?? 0,
-                assists: pInfo.match_stats?.assists ?? 0,
-            mvps: pStats.mvps !== undefined ? pStats.mvps : 0,
-            stats: pStats
+            hp: pState.health ?? 100,
+            money: pState.money ?? 0,
+            kills: pStats.kills ?? 0,
+            deaths: pStats.deaths ?? 0,
+            assists: pStats.assists ?? 0
           };
-
-          if (Object.keys(playersMap).length === 0 || !sessionPlayers.has(localSteamId)) {
+          if (!sessionPlayers.has(localSteamId)) {
             sessionPlayers.set(localSteamId, localPlayerObj);
           } else {
             const existing = sessionPlayers.get(localSteamId);
@@ -125,7 +119,11 @@ const server = http.createServer((req, res) => {
               ...existing,
               team: data.player.team || existing.team,
               name: data.player.name || existing.name,
-              stats: data.player.match_stats || existing.stats
+              hp: pState.health ?? existing.hp,
+              money: pState.money ?? existing.money,
+              kills: pStats.kills ?? existing.kills,
+              deaths: pStats.deaths ?? existing.deaths,
+              assists: pStats.assists ?? existing.assists
             });
           }
         }

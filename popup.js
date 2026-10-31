@@ -763,7 +763,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (tPlayers.length === 0) teamTList.innerHTML = '<div class="no-notes">-</div>';
     if (ctPlayers.length === 0) teamCTList.innerHTML = '<div class="no-notes">-</div>';
 
-    const steamIds = players.map(p => p.steamId);
+    const steamIds = players.map(p => p.steamid || p.steamId);
     storage.get(steamIds, (notesMap) => {
       tPlayers.forEach(p => renderPlayerCard(p, teamTList, notesMap[p.steamId]));
       ctPlayers.forEach(p => renderPlayerCard(p, teamCTList, notesMap[p.steamId]));
@@ -779,14 +779,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     card.innerHTML = `
       <div class="live-player-header">
         <span class="live-player-name" title="${player.name}">${player.name}</span>
-        <span class="live-player-id">${player.steamId}</span>
+        <span class="live-player-id">${(player.steamid || player.steamId)}</span>
       </div>
       ${noteHtml}
       <div class="live-player-trackers">
-        <button class="live-tracker-link" data-url="https://cstracker.gg/players/${player.steamId}">CST</button>
-        <button class="live-tracker-link" data-url="https://cs2tracker.gg/stats/${player.steamId}">CS2T</button>
-        <button class="live-tracker-link" data-url="https://faceitfinder.com/profile/${player.steamId}">FF</button>
-        <button class="live-tracker-link" data-url="https://csstats.gg/player/${player.steamId}">CSS</button>
+        <button class="live-tracker-link" data-url="https://cstracker.gg/players/${(player.steamid || player.steamId)}">CST</button>
+        <button class="live-tracker-link" data-url="https://cs2tracker.gg/stats/${(player.steamid || player.steamId)}">CS2T</button>
+        <button class="live-tracker-link" data-url="https://faceitfinder.com/profile/${(player.steamid || player.steamId)}">FF</button>
+        <button class="live-tracker-link" data-url="https://csstats.gg/player/${(player.steamid || player.steamId)}">CSS</button>
       </div>
     `;
 
