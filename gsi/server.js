@@ -1,6 +1,10 @@
 const http = require('http');
 
-let latestMatchState = {connected: false,
+const sessionPlayers = new Map();
+let lastMapName = '';
+
+let latestMatchState = {
+  connected: false,
   map: null,
   round: null,
   players: [],
@@ -49,6 +53,10 @@ const server = http.createServer((req, res) => {
         }
 
         if (data.map) {
+          if (data.map.name && data.map.name !== lastMapName) {
+            sessionPlayers.clear();
+            lastMapName = data.map.name;
+          }
           latestMatchState.map = {
             name: data.map.name,
             mode: data.map.mode,
@@ -65,36 +73,44 @@ const server = http.createServer((req, res) => {
         }
 
         const playersMap = data.allplayers || data.allplayers_id || {};
-        const players = [];
-
-        for (const [steamId, pInfo] of Object.entries(playersMap)) {
-          if (steamId && steamId !== 'observer') {
-            players.push({
-              steamId: steamId,
-              name: pInfo.name || (pInfo.observer_slot ? `Player #${pInfo.observer_slot}` : 'Unknown'),
-              team: pInfo.team || 'unknown',
-              observer_slot: pInfo.observer_slot || 0,
-              stats: pInfo.match_stats || {}
-            });
+        if (Object.keys(playersMap).length > 0) {
+          for (const [steamId, pInfo] of Object.entries(playersMap)) {
+            if (steamId && steamId !== 'observer') {
+              sessionPlayers.set(steamId, {
+                steamId: steamId,
+                name: pInfo.name || (pInfo.observer_slot ? `Player #${pInfo.observer_slot}` : 'Unknown'),
+                team: pInfo.team || 'unknown',
+                observer_slot: pInfo.observer_slot || 0,
+                stats: pInfo.match_stats || {}
+              });
+            }
           }
         }
 
         if (data.player && data.player.steamid) {
           const localSteamId = data.player.steamid;
-          if (!players.some(p => p.steamId === localSteamId)) {
-            players.push({
-              steamId: localSteamId,
-              name: data.player.name || 'You',
-              team: data.player.team || 'unknown',
-              observer_slot: data.player.observer_slot || 0,
-              stats: data.player.match_stats || {}
+          const localPlayerObj = {
+            steamId: localSteamId,
+            name: data.player.name || 'You',
+            team: data.player.team || 'unknown',
+            observer_slot: data.player.observer_slot || 0,
+            stats: data.player.match_stats || {}
+          };
+
+          if (Object.keys(playersMap).length === 0 || !sessionPlayers.has(localSteamId)) {
+            sessionPlayers.set(localSteamId, localPlayerObj);
+          } else {
+            const existing = sessionPlayers.get(localSteamId);
+            sessionPlayers.set(localSteamId, {
+              ...existing,
+              team: data.player.team || existing.team,
+              name: data.player.name || existing.name,
+              stats: data.player.match_stats || existing.stats
             });
           }
         }
 
-        if (players.length > 0) {
-          latestMatchState.players = players;
-        }
+        latestMatchState.players = Array.from(sessionPlayers.values());
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
