@@ -712,8 +712,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function pollGsiState() {
-    const dict = i18n[currentLang] || i18n.ru;
     try {
+      const dict = i18n[currentLang] || i18n.ru;
       const res = await fetch('http://127.0.0.1:3000/status');
       const data = await res.json();
 
@@ -723,7 +723,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (debugInfo) {
           debugInfo.textContent = `Players: ${(data.players || []).length} | GSI Keys: ${(data.rawKeys || []).join(', ')}`;
         }
-        
+
         if (data.map) {
           matchInfoCard.classList.remove('hidden');
           matchMap.textContent = `${dict.mapLabel}${data.map.name || '-'}`;
@@ -741,83 +741,96 @@ document.addEventListener('DOMContentLoaded', async () => {
         teamTList.innerHTML = `<div class="no-notes">${dict.noPlayersLive}</div>`;
         teamCTList.innerHTML = `<div class="no-notes">${dict.noPlayersLive}</div>`;
       }
-    } catch (err) {
+    } catch (e) {
+      console.error('GSI Render error:', e);
       gsiIndicator.className = 'gsi-dot disconnected';
       gsiStatusText.textContent = dict.gsiWaiting;
-        if (debugInfo) {
-          debugInfo.textContent = 'GSI Keys: none (Disconnected)';
-        }
+      if (debugInfo) {
+        debugInfo.textContent = 'GSI Keys: none (Disconnected)';
+      }
       matchInfoCard.classList.add('hidden');
-      teamTList.innerHTML = `<div class="no-notes">${dict.noPlayersLive}</div>`;
-      teamCTList.innerHTML = `<div class="no-notes">${dict.noPlayersLive}</div>`;
+      teamTList.innerHTML = `<div class="no-notes">${i18n[currentLang]?.noPlayersLive || i18n.ru.noPlayersLive}</div>`;
+      teamCTList.innerHTML = `<div class="no-notes">${i18n[currentLang]?.noPlayersLive || i18n.ru.noPlayersLive}</div>`;
     }
   }
 
   function renderLiveTeams(players) {
-    teamTList.innerHTML = '';
-    teamCTList.innerHTML = '';
+    try {
+      teamTList.innerHTML = '';
+      teamCTList.innerHTML = '';
 
-    const tPlayers = players.filter(p => p.team === 'T');
-    const ctPlayers = players.filter(p => p.team === 'CT');
+      const tPlayers = players.filter(p => p.team === 'T');
+      const ctPlayers = players.filter(p => p.team === 'CT');
 
-    if (tPlayers.length === 0) teamTList.innerHTML = '<div class="no-notes">-</div>';
-    if (ctPlayers.length === 0) teamCTList.innerHTML = '<div class="no-notes">-</div>';
+      if (tPlayers.length === 0) teamTList.innerHTML = '<div class="no-notes">-</div>';
+      if (ctPlayers.length === 0) teamCTList.innerHTML = '<div class="no-notes">-</div>';
 
-    const steamIds = players.map(p => p.steamid || p.steamId);
-    storage.get(steamIds, (notesMap) => {
-      tPlayers.forEach(p => renderPlayerCard(p, teamTList, notesMap[p.steamId]));
-      ctPlayers.forEach(p => renderPlayerCard(p, teamCTList, notesMap[p.steamId]));
-    });
+      const steamIds = players.map(p => p.steamid || p.steamId);
+      storage.get(steamIds, (notesMap) => {
+        try {
+          tPlayers.forEach(p => renderPlayerCard(p, teamTList, notesMap[p.steamid || p.steamId]));
+          ctPlayers.forEach(p => renderPlayerCard(p, teamCTList, notesMap[p.steamid || p.steamId]));
+        } catch (e) {
+          console.error('GSI Render error:', e);
+        }
+      });
+    } catch (e) {
+      console.error('GSI Render error:', e);
+    }
   }
 
   function renderPlayerCard(player, container, noteText) {
-    const card = document.createElement('div');
-    const hp = player.hp !== undefined ? player.hp : 100;
-    const isDead = hp === 0;
-    card.className = `live-player-card${isDead ? ' dead' : ''}`;
+    try {
+      const card = document.createElement('div');
+      const hp = player.hp !== undefined ? player.hp : 100;
+      const isDead = hp === 0;
+      card.className = `live-player-card${isDead ? ' dead' : ''}`;
 
-    let badgesHtml = '';
-    let cleanNoteText = noteText || '';
-    if (noteText) {
-      customTags.forEach(tag => {
-        if (noteText.includes(tag.name)) {
-          badgesHtml += `<span class="tag-badge" data-color="${tag.color}" style="font-size: 8px; padding: 1px 3px; margin-right: 3px;">${tag.name}</span>`;
-        }
+      let badgesHtml = '';
+      let cleanNoteText = noteText || '';
+      if (noteText) {
+        customTags.forEach(tag => {
+          if (noteText.includes(tag.name)) {
+            badgesHtml += `<span class="tag-badge" data-color="${tag.color}" style="font-size: 8px; padding: 1px 3px; margin-right: 3px;">${tag.name}</span>`;
+          }
+        });
+      }
+      let noteHtml = noteText ? `<div class="live-player-note">${badgesHtml}<span style="margin-left: 2px;">${cleanNoteText}</span></div>` : '';
+
+      const money = player.money !== undefined ? player.money : 0;
+      const kills = player.kills || 0;
+      const deaths = player.deaths || 0;
+      const assists = player.assists || 0;
+
+      const statsHtml = `<div class="player-stats" style="font-size: 10px; color: #aaa; margin: 2px 0;">❤️ ${hp} | 💵 ${money} | 🎯 ${kills}/${deaths}/${assists}</div>`;
+
+      const sid = player.steamid || player.steamId;
+
+      card.innerHTML = `
+        <div class="live-player-header">
+          <span class="live-player-name" title="${player.name}">${player.name}</span>
+          <span class="live-player-id">${sid}</span>
+        </div>
+        ${statsHtml}
+        ${noteHtml}
+        <div class="live-player-trackers">
+          <button class="live-tracker-link" data-url="https://cstracker.gg/players/${sid}">CST</button>
+          <button class="live-tracker-link" data-url="https://cs2tracker.gg/stats/${sid}">CS2T</button>
+          <button class="live-tracker-link" data-url="https://faceitfinder.com/profile/${sid}">FF</button>
+          <button class="live-tracker-link" data-url="https://csstats.gg/player/${sid}">CSS</button>
+        </div>
+      `;
+
+      card.querySelectorAll('.live-tracker-link').forEach(btn => {
+        btn.addEventListener('click', () => {
+          chrome.tabs.create({ url: btn.getAttribute('data-url') });
+        });
       });
+
+      container.appendChild(card);
+    } catch (e) {
+      console.error('GSI Render error:', e);
     }
-    let noteHtml = noteText ? `<div class="live-player-note">${badgesHtml}<span style="margin-left: 2px;">${cleanNoteText}</span></div>` : '';
-
-    const money = player.money !== undefined ? player.money : 0;
-    const kills = player.kills || 0;
-    const deaths = player.deaths || 0;
-    const assists = player.assists || 0;
-
-    const statsHtml = `<div class="player-stats" style="font-size: 10px; color: #aaa; margin: 2px 0;">❤️ ${hp} | 💵 ${money} | 🎯 ${kills}/${deaths}/${assists}</div>`;
-
-    const sid = player.steamid || player.steamId;
-
-    card.innerHTML = `
-      <div class="live-player-header">
-        <span class="live-player-name" title="${player.name}">${player.name}</span>
-        <span class="live-player-id">${sid}</span>
-      </div>
-      ${statsHtml}
-      ${noteHtml}
-      <div class="live-player-trackers">
-        <button class="live-tracker-link" data-url="https://cstracker.gg/players/${sid}">CST</button>
-        <button class="live-tracker-link" data-url="https://cs2tracker.gg/stats/${sid}">CS2T</button>
-        <button class="live-tracker-link" data-url="https://faceitfinder.com/profile/${sid}">FF</button>
-        <button class="live-tracker-link" data-url="https://csstats.gg/player/${sid}">CSS</button>   
-      </div>
-    `;
-
-    card.querySelectorAll('.live-tracker-link').forEach(btn => {
-      btn.addEventListener('click', () => {
-        chrome.tabs.create({ url: btn.getAttribute('data-url') });
-      });
-    });
-
-    container.appendChild(card);
   }</div>` : '';
 
     card.innerHTML = `
