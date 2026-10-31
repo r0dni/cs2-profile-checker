@@ -178,6 +178,9 @@ async function resolveToSteamID64(input) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+  if (window.innerWidth > 420) {
+    document.body.classList.add('detached');
+  }
   const profileInput = document.getElementById('profileInput');
   const clearInputBtn = document.getElementById('clearInputBtn');
   const errorMsg = document.getElementById('errorMsg');

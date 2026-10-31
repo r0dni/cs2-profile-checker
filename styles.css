@@ -826,3 +826,28 @@ textarea:focus {
   opacity: 0.45 !important;
   filter: grayscale(0.5) !important;
 }
+
+/* v1.2.0 Detached window responsive layout */
+body.detached {
+  width: 100% !important;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 10px;
+}
+body.detached .container {
+  padding: 20px;
+}
+body.detached .live-player-card {
+  padding: 8px 10px !important;
+  font-size: 12px !important;
+}
+body.detached .player-stats {
+  font-size: 11px !important;
+}
+body.detached .live-player-name {
+  font-size: 13px !important;
+}
+body.detached .live-tracker-link {
+  font-size: 10px !important;
+  padding: 4px 0 !important;
+}

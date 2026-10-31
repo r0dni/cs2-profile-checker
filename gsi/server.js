@@ -109,7 +109,11 @@ const server = http.createServer((req, res) => {
             money: pState.money ?? 0,
             kills: pStats.kills ?? 0,
             deaths: pStats.deaths ?? 0,
-            assists: pStats.assists ?? 0
+            assists: pStats.assists ?? 0,
+            armor: data.player.state?.armor ?? (data.player.armor ?? 0),
+            helmet: data.player.state?.helmet ?? (data.player.helmet ?? false),
+                armor: pInfo.state?.armor ?? (pInfo.armor ?? 0),
+                helmet: pInfo.state?.helmet ?? (pInfo.helmet ?? false)
           };
           if (!sessionPlayers.has(localSteamId)) {
             sessionPlayers.set(localSteamId, localPlayerObj);
