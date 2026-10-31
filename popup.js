@@ -772,9 +772,53 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function renderPlayerCard(player, container, noteText) {
     const card = document.createElement('div');
-    card.className = 'live-player-card';
+    const hp = player.hp !== undefined ? player.hp : 100;
+    const isDead = hp === 0;
+    card.className = `live-player-card${isDead ? ' dead' : ''}`;
 
-    let noteHtml = noteText ? `<div class="live-player-note">${noteText}</div>` : '';
+    let badgesHtml = '';
+    let cleanNoteText = noteText || '';
+    if (noteText) {
+      customTags.forEach(tag => {
+        if (noteText.includes(tag.name)) {
+          badgesHtml += `<span class="tag-badge" data-color="${tag.color}" style="font-size: 8px; padding: 1px 3px; margin-right: 3px;">${tag.name}</span>`;
+        }
+      });
+    }
+    let noteHtml = noteText ? `<div class="live-player-note">${badgesHtml}<span style="margin-left: 2px;">${cleanNoteText}</span></div>` : '';
+
+    const money = player.money !== undefined ? player.money : 0;
+    const kills = player.kills || 0;
+    const deaths = player.deaths || 0;
+    const assists = player.assists || 0;
+
+    const statsHtml = `<div class="player-stats" style="font-size: 10px; color: #aaa; margin: 2px 0;">❤️ ${hp} | 💵 ${money} | 🎯 ${kills}/${deaths}/${assists}</div>`;
+
+    const sid = player.steamid || player.steamId;
+
+    card.innerHTML = `
+      <div class="live-player-header">
+        <span class="live-player-name" title="${player.name}">${player.name}</span>
+        <span class="live-player-id">${sid}</span>
+      </div>
+      ${statsHtml}
+      ${noteHtml}
+      <div class="live-player-trackers">
+        <button class="live-tracker-link" data-url="https://cstracker.gg/players/${sid}">CST</button>
+        <button class="live-tracker-link" data-url="https://cs2tracker.gg/stats/${sid}">CS2T</button>
+        <button class="live-tracker-link" data-url="https://faceitfinder.com/profile/${sid}">FF</button>
+        <button class="live-tracker-link" data-url="https://csstats.gg/player/${sid}">CSS</button>   
+      </div>
+    `;
+
+    card.querySelectorAll('.live-tracker-link').forEach(btn => {
+      btn.addEventListener('click', () => {
+        chrome.tabs.create({ url: btn.getAttribute('data-url') });
+      });
+    });
+
+    container.appendChild(card);
+  }</div>` : '';
 
     card.innerHTML = `
       <div class="live-player-header">
