@@ -793,3 +793,36 @@ textarea:focus {
   padding: 2px 0 !important;
   font-size: 9px !important;
 }
+
+/* v1.1.1 styles */
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.live-players-list {
+  max-height: none !important;
+  overflow-y: visible !important;
+}
+.live-player-card {
+  padding: 4px 6px !important;
+  margin-bottom: 4px !important;
+  font-size: 10px !important;
+}
+.live-player-name {
+  font-size: 11px !important;
+  font-weight: bold !important;
+}
+.player-stats {
+  font-size: 10px !important;
+  color: #aaa !important;
+  margin: 2px 0 !important;
+}
+.live-tracker-link {
+  font-size: 9px !important;
+  padding: 2px 4px !important;
+}
+.live-player-card.dead {
+  opacity: 0.45 !important;
+  filter: grayscale(0.5) !important;
+}

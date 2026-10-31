@@ -83,12 +83,12 @@ const server = http.createServer((req, res) => {
                 name: pInfo.name || (pInfo.observer_slot ? `Player #${pInfo.observer_slot}` : 'Unknown'),
                 team: pInfo.team || 'unknown',
                 observer_slot: pInfo.observer_slot || 0,
-                hp: pState.health !== undefined ? pState.health : 100,
-                money: pState.money !== undefined ? pState.money : 0,
-                kills: pStats.kills !== undefined ? pStats.kills : 0,
-                deaths: pStats.deaths !== undefined ? pStats.deaths : 0,
-                assists: pStats.assists !== undefined ? pStats.assists : 0,
-                mvps: pStats.mvps !== undefined ? pStats.mvps : 0,
+                hp: pInfo.state?.health ?? (pInfo.hp ?? 100),
+                money: pInfo.state?.money ?? (pInfo.money ?? 0),
+                kills: pInfo.match_stats?.kills ?? (pInfo.kills ?? 0),
+                deaths: pInfo.match_stats?.deaths ?? (pInfo.deaths ?? 0),
+                assists: pInfo.match_stats?.assists ?? (pInfo.assists ?? 0),
+                mvps: pInfo.match_stats?.mvps ?? (pInfo.mvps ?? 0),
                 stats: pStats
               });
             }
