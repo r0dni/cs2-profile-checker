@@ -741,8 +741,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           debugInfo.textContent = 'GSI Keys: none (Disconnected)';
         }
         matchInfoCard.classList.add('hidden');
-        teamTList.innerHTML = `<div class="no-notes">${dict.noPlayersLive}</div>`;
-        teamCTList.innerHTML = `<div class="no-notes">${dict.noPlayersLive}</div>`;
+        teamTList.innerHTML = `<div class="no-notes">${'Нет активных игроков'}</div>`;
+        teamCTList.innerHTML = `<div class="no-notes">${'Нет активных игроков'}</div>`;
       }
     } catch (e) {
       console.error('GSI Render error:', e);

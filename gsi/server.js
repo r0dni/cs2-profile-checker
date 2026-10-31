@@ -93,10 +93,6 @@ const server = http.createServer((req, res) => {
             deaths: pStats.deaths ?? 0,
             assists: pStats.assists ?? 0
           };
-            kills: pStats.kills ?? 0,
-            deaths: pStats.deaths ?? 0,
-            assists: pStats.assists ?? 0
-          };
           if (!sessionPlayers.has(localSteamId)) {
             sessionPlayers.set(localSteamId, localPlayerObj);
           } else {
@@ -105,8 +101,8 @@ const server = http.createServer((req, res) => {
               ...existing,
               team: data.player.team || existing.team,
               name: data.player.name || existing.name,
-              hp: state.health ?? existing.hp,
-              money: state.money ?? existing.money,
+              hp: pState.health ?? existing.hp,
+              money: pState.money ?? existing.money,
               armor: armor,
               helmet: helmet,
               kills: pStats.kills ?? existing.kills,
