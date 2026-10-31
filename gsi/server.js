@@ -81,39 +81,46 @@ const server = http.createServer((req, res) => {
           sessionPlayers.clear();
           Object.entries(data.allplayers).forEach(([steamid, playerData]) => {
             if (steamid && steamid !== 'observer') {
+              const state = playerData.state || {};
+              const armor = typeof state.armor === 'number' ? state.armor : 0;
+              const helmet = typeof state.helmet === 'boolean' ? state.helmet : false;
+              const pStats = playerData.match_stats || {};
               sessionPlayers.set(steamid, {
                 steamid: steamid,
                 steamId: steamid,
                 name: playerData.name || 'Unknown',
                 team: playerData.team || 'CT',
-                hp: playerData.state?.health ?? 100,
-                money: playerData.state?.money ?? 0,
-                kills: playerData.match_stats?.kills ?? 0,
-                deaths: playerData.match_stats?.deaths ?? 0,
-                assists: playerData.match_stats?.assists ?? 0
+                hp: state.health ?? 100,
+                money: state.money ?? 0,
+                armor: armor,
+                helmet: helmet,
+                kills: pStats.kills ?? 0,
+                deaths: pStats.deaths ?? 0,
+                assists: pStats.assists ?? 0
               });
             }
+          });
           });
         }
 
         if (data.player && data.player.steamid) {
           const localSteamId = data.player.steamid;
-          const pState = data.player.state || {};
+          const state = data.player.state || {};
+          const armor = typeof state.armor === 'number' ? state.armor : 0;
+          const helmet = typeof state.helmet === 'boolean' ? state.helmet : false;
           const pStats = data.player.match_stats || {};
           const localPlayerObj = {
             steamid: localSteamId,
             steamId: localSteamId,
             name: data.player.name || 'You',
             team: data.player.team || 'unknown',
-            hp: pState.health ?? 100,
-            money: pState.money ?? 0,
+            hp: state.health ?? 100,
+            money: state.money ?? 0,
+            armor: armor,
+            helmet: helmet,
             kills: pStats.kills ?? 0,
             deaths: pStats.deaths ?? 0,
-            assists: pStats.assists ?? 0,
-            armor: pInfo.state?.armor ?? 0,
-                helmet: pInfo.state?.helmet ?? false,
-                armor: data.player.state?.armor ?? 0,
-            helmet: data.player.state?.helmet ?? false
+            assists: pStats.assists ?? 0
           };
           if (!sessionPlayers.has(localSteamId)) {
             sessionPlayers.set(localSteamId, localPlayerObj);
@@ -123,8 +130,10 @@ const server = http.createServer((req, res) => {
               ...existing,
               team: data.player.team || existing.team,
               name: data.player.name || existing.name,
-              hp: pState.health ?? existing.hp,
-              money: pState.money ?? existing.money,
+              hp: state.health ?? existing.hp,
+              money: state.money ?? existing.money,
+              armor: armor,
+              helmet: helmet,
               kills: pStats.kills ?? existing.kills,
               deaths: pStats.deaths ?? existing.deaths,
               assists: pStats.assists ?? existing.assists
