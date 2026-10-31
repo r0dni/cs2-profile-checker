@@ -769,3 +769,27 @@ textarea:focus {
 .hidden {
   display: none !important;
 }
+
+/* v1.1.0 Live match compactness & dead player styles */
+.live-players-list {
+  max-height: 260px;
+  overflow-y: auto;
+}
+.live-player-card {
+  padding: 4px 6px !important;
+  font-size: 10px !important;
+}
+.live-player-name {
+  font-size: 11px !important;
+}
+.live-player-stats {
+  font-size: 9px !important;
+  color: var(--text-secondary);
+}
+.dead-player {
+  opacity: 0.5;
+}
+.live-tracker-link {
+  padding: 2px 0 !important;
+  font-size: 9px !important;
+}

@@ -76,12 +76,20 @@ const server = http.createServer((req, res) => {
         if (Object.keys(playersMap).length > 0) {
           for (const [steamId, pInfo] of Object.entries(playersMap)) {
             if (steamId && steamId !== 'observer') {
+              const pState = pInfo.state || {};
+              const pStats = pInfo.match_stats || {};
               sessionPlayers.set(steamId, {
                 steamId: steamId,
                 name: pInfo.name || (pInfo.observer_slot ? `Player #${pInfo.observer_slot}` : 'Unknown'),
                 team: pInfo.team || 'unknown',
                 observer_slot: pInfo.observer_slot || 0,
-                stats: pInfo.match_stats || {}
+                hp: pState.health !== undefined ? pState.health : 100,
+                money: pState.money !== undefined ? pState.money : 0,
+                kills: pStats.kills !== undefined ? pStats.kills : 0,
+                deaths: pStats.deaths !== undefined ? pStats.deaths : 0,
+                assists: pStats.assists !== undefined ? pStats.assists : 0,
+                mvps: pStats.mvps !== undefined ? pStats.mvps : 0,
+                stats: pStats
               });
             }
           }
@@ -89,12 +97,20 @@ const server = http.createServer((req, res) => {
 
         if (data.player && data.player.steamid) {
           const localSteamId = data.player.steamid;
+          const pState = data.player.state || {};
+          const pStats = data.player.match_stats || {};
           const localPlayerObj = {
             steamId: localSteamId,
             name: data.player.name || 'You',
             team: data.player.team || 'unknown',
             observer_slot: data.player.observer_slot || 0,
-            stats: data.player.match_stats || {}
+            hp: pState.health !== undefined ? pState.health : 100,
+            money: pState.money !== undefined ? pState.money : 0,
+            kills: pStats.kills !== undefined ? pStats.kills : 0,
+            deaths: pStats.deaths !== undefined ? pStats.deaths : 0,
+            assists: pStats.assists !== undefined ? pStats.assists : 0,
+            mvps: pStats.mvps !== undefined ? pStats.mvps : 0,
+            stats: pStats
           };
 
           if (Object.keys(playersMap).length === 0 || !sessionPlayers.has(localSteamId)) {

@@ -217,6 +217,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   const teamCTList = document.getElementById('teamCTList');
 
   // Settings elements
+  const detachBtn = document.getElementById('detachBtn');
+  if (detachBtn) {
+    detachBtn.addEventListener('click', () => {
+      chrome.windows.create({
+        url: chrome.runtime.getURL('popup.html'),
+        type: 'popup',
+        width: 480,
+        height: 720
+      });
+      window.close();
+    });
+  }
   const settingsBtn = document.getElementById('settingsBtn');
   const settingsModal = document.getElementById('settingsModal');
   const closeSettingsBtn = document.getElementById('closeSettingsBtn');
