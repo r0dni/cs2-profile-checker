@@ -1,10 +1,10 @@
 const http = require('http');
 
-let latestMatchState = {
-  connected: false,
+let latestMatchState = {connected: false,
   map: null,
   round: null,
-  players: []
+  players: [],
+  rawKeys: []
 };
 
 let lastHeartbeat = Date.now();
@@ -41,6 +41,12 @@ const server = http.createServer((req, res) => {
         const data = JSON.parse(body);
         lastHeartbeat = Date.now();
         latestMatchState.connected = true;
+        latestMatchState.rawKeys = Object.keys(data);
+
+        console.log("Получен пакет от CS2. Ключи:", Object.keys(data));
+        if (data.allplayers) {
+          console.log("allplayers keys:", Object.keys(data.allplayers || {}));
+        }
 
         if (data.map) {
           latestMatchState.map = {

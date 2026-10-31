@@ -209,6 +209,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Live match elements
   const gsiIndicator = document.getElementById('gsiIndicator');
   const gsiStatusText = document.getElementById('gsiStatusText');
+  const debugInfo = document.getElementById('debugInfo');
   const matchInfoCard = document.getElementById('matchInfoCard');
   const matchMap = document.getElementById('matchMap');
   const matchScore = document.getElementById('matchScore');
@@ -707,6 +708,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (data && data.connected) {
         gsiIndicator.className = 'gsi-dot connected';
         gsiStatusText.textContent = dict.gsiConnected;
+        if (debugInfo) {
+          debugInfo.textContent = `Players: ${(data.players || []).length} | GSI Keys: ${(data.rawKeys || []).join(', ')}`;
+        }
         
         if (data.map) {
           matchInfoCard.classList.remove('hidden');
@@ -718,6 +722,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else {
         gsiIndicator.className = 'gsi-dot disconnected';
         gsiStatusText.textContent = dict.gsiWaiting;
+        if (debugInfo) {
+          debugInfo.textContent = 'GSI Keys: none (Disconnected)';
+        }
         matchInfoCard.classList.add('hidden');
         teamTList.innerHTML = `<div class="no-notes">${dict.noPlayersLive}</div>`;
         teamCTList.innerHTML = `<div class="no-notes">${dict.noPlayersLive}</div>`;
@@ -725,6 +732,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (err) {
       gsiIndicator.className = 'gsi-dot disconnected';
       gsiStatusText.textContent = dict.gsiWaiting;
+        if (debugInfo) {
+          debugInfo.textContent = 'GSI Keys: none (Disconnected)';
+        }
       matchInfoCard.classList.add('hidden');
       teamTList.innerHTML = `<div class="no-notes">${dict.noPlayersLive}</div>`;
       teamCTList.innerHTML = `<div class="no-notes">${dict.noPlayersLive}</div>`;
