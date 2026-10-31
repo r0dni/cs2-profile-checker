@@ -799,8 +799,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
       }
 
-      const armor = player.armor || 0;
-      const helmet = player.helmet || false;
+      const armor = Number(player.armor || 0);
+      const helmet = Boolean(player.helmet);
       const armorIcon = helmet ? '🪖' : '🛡️';
 
       const money = player.money !== undefined ? player.money : 0;

@@ -79,26 +79,31 @@ const server = http.createServer((req, res) => {
         const playersMap = data.allplayers || data.allplayers_id || {};
         if (data.allplayers) {
           sessionPlayers.clear();
+          if (data.allplayers) {
+          console.log("ALLPLAYERS ARMOR LOG:", Object.values(data.allplayers).map(p => `${p.name}: armor=${p.state?.armor}`));
+          sessionPlayers.clear();
           Object.entries(data.allplayers).forEach(([steamid, playerData]) => {
             if (steamid && steamid !== 'observer') {
-              const state = playerData.state || {};
-              const armor = typeof state.armor === 'number' ? state.armor : 0;
-              const helmet = typeof state.helmet === 'boolean' ? state.helmet : false;
+              const pState = playerData.state || {};
+              const armorValue = pState.armor !== undefined ? pState.armor : (playerData.armor !== undefined ? playerData.armor : 0);
+              const helmetValue = pState.helmet !== undefined ? pState.helmet : (playerData.helmet !== undefined ? playerData.helmet : false);
               const pStats = playerData.match_stats || {};
               sessionPlayers.set(steamid, {
                 steamid: steamid,
                 steamId: steamid,
                 name: playerData.name || 'Unknown',
                 team: playerData.team || 'CT',
-                hp: state.health ?? 100,
-                money: state.money ?? 0,
-                armor: armor,
-                helmet: helmet,
+                hp: pState.health ?? 100,
+                money: pState.money ?? 0,
+                armor: armorValue,
+                helmet: helmetValue,
                 kills: pStats.kills ?? 0,
                 deaths: pStats.deaths ?? 0,
                 assists: pStats.assists ?? 0
               });
             }
+          });
+        }
           });
           });
         }
