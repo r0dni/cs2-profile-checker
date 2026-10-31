@@ -853,4 +853,28 @@ document.addEventListener('DOMContentLoaded', async () => {
       console.error('Render player card error:', err);
     }
   }
+
+  // About Modal elements
+  const aboutBtn = document.getElementById('aboutBtn');
+  const aboutModal = document.getElementById('aboutModal');
+  const closeAboutModal = document.getElementById('closeAboutModal');
+
+  if (aboutBtn && aboutModal && closeAboutModal) {
+    aboutBtn.addEventListener('click', () => aboutModal.classList.remove('hidden'));
+    closeAboutModal.addEventListener('click', () => aboutModal.classList.add('hidden'));
+    aboutModal.addEventListener('click', (e) => {
+      if (e.target === aboutModal) aboutModal.classList.add('hidden');
+    });
+  }
+
+  // External link buttons handler
+  document.querySelectorAll('.external-link-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const url = btn.getAttribute('data-url');
+      if (url) {
+        chrome.tabs.create({ url });
+      }
+    });
+  });
+
 });
