@@ -49,44 +49,13 @@ const server = http.createServer((req, res) => {
 
         console.log("Получен пакет от CS2. Ключи:", Object.keys(data));
         if (data.allplayers) {
-          console.log("allplayers keys:", Object.keys(data.allplayers || {}));
-          const firstKey = Object.keys(data.allplayers)[0];
-          if (firstKey) {
-            console.log("Sample player data:", data.allplayers[firstKey]);
-          }
-        }
-
-        if (data.map) {
-          if (data.map.name && data.map.name !== lastMapName) {
-            sessionPlayers.clear();
-            lastMapName = data.map.name;
-          }
-          latestMatchState.map = {
-            name: data.map.name,
-            mode: data.map.mode,
-            phase: data.map.phase,
-            score_ct: data.map.team_ct?.score || 0,
-            score_t: data.map.team_t?.score || 0
-          };
-        }
-
-        if (data.round) {
-          latestMatchState.round = {
-            phase: data.round.phase
-          };
-        }
-
-        const playersMap = data.allplayers || data.allplayers_id || {};
-        if (data.allplayers) {
-          sessionPlayers.clear();
-          if (data.allplayers) {
-          console.log("ALLPLAYERS ARMOR LOG:", Object.values(data.allplayers).map(p => `${p.name}: armor=${p.state?.armor}`));
+          console.log("ALLPLAYERS ARMOR LOG:", Object.values(data.allplayers).map(p => `${p.name}: armor=${p.state?.armor}, helmet=${p.state?.helmet}`));
           sessionPlayers.clear();
           Object.entries(data.allplayers).forEach(([steamid, playerData]) => {
             if (steamid && steamid !== 'observer') {
               const pState = playerData.state || {};
-              const armorValue = pState.armor !== undefined ? pState.armor : (playerData.armor !== undefined ? playerData.armor : 0);
-              const helmetValue = pState.helmet !== undefined ? pState.helmet : (playerData.helmet !== undefined ? playerData.helmet : false);
+              const armor = typeof pState.armor === 'number' ? pState.armor : 0;
+              const helmet = Boolean(pState.helmet);
               const pStats = playerData.match_stats || {};
               sessionPlayers.set(steamid, {
                 steamid: steamid,
@@ -95,8 +64,8 @@ const server = http.createServer((req, res) => {
                 team: playerData.team || 'CT',
                 hp: pState.health ?? 100,
                 money: pState.money ?? 0,
-                armor: armorValue,
-                helmet: helmetValue,
+                armor: armor,
+                helmet: helmet,
                 kills: pStats.kills ?? 0,
                 deaths: pStats.deaths ?? 0,
                 assists: pStats.assists ?? 0
@@ -104,25 +73,26 @@ const server = http.createServer((req, res) => {
             }
           });
         }
-          });
-          });
-        }
 
         if (data.player && data.player.steamid) {
           const localSteamId = data.player.steamid;
-          const state = data.player.state || {};
-          const armor = typeof state.armor === 'number' ? state.armor : 0;
-          const helmet = typeof state.helmet === 'boolean' ? state.helmet : false;
+          const pState = data.player.state || {};
+          const armor = typeof pState.armor === 'number' ? pState.armor : 0;
+          const helmet = Boolean(pState.helmet);
           const pStats = data.player.match_stats || {};
           const localPlayerObj = {
             steamid: localSteamId,
             steamId: localSteamId,
             name: data.player.name || 'You',
             team: data.player.team || 'unknown',
-            hp: state.health ?? 100,
-            money: state.money ?? 0,
+            hp: pState.health ?? 100,
+            money: pState.money ?? 0,
             armor: armor,
             helmet: helmet,
+            kills: pStats.kills ?? 0,
+            deaths: pStats.deaths ?? 0,
+            assists: pStats.assists ?? 0
+          };
             kills: pStats.kills ?? 0,
             deaths: pStats.deaths ?? 0,
             assists: pStats.assists ?? 0

@@ -799,7 +799,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
       }
 
-      const armor = Number(player.armor || 0);
+      const armor = player.armor !== undefined ? player.armor : 0;
       const helmet = Boolean(player.helmet);
       const armorIcon = helmet ? '🪖' : '🛡️';
 
@@ -811,7 +811,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const statsDiv = document.createElement('div');
       statsDiv.className = 'player-stats';
       statsDiv.style.cssText = 'font-size: 10px; color: #aaa; margin: 2px 0;';
-      statsDiv.textContent = `❤️ ${hp} | ${armorIcon}${armor} | 💵 ${money} | 🎯 ${kills}/${deaths}/${assists}`;
+      statsDiv.textContent = `❤️ ${hp} ${armorIcon}${armor} | 💵 ${money} | 🎯 ${kills}/${deaths}/${assists}`;
 
       const sid = player.steamid || player.steamId;
 
