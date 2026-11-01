@@ -447,12 +447,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
     storage.get([identifier], (result) => {
-      if (result && result[identifier]) {
-        playerNote.value = result[identifier];
-        noteStatus.textContent = '';
-      } else {
+      const val = result && result[identifier];
+      if (!val) {
         playerNote.value = '';
         noteStatus.textContent = '';
+      } else if (typeof val === 'string') {
+        playerNote.value = val;
+      } else if (typeof val === 'object') {
+        playerNote.value = val.text || '';
       }
     });
   }
@@ -562,13 +564,33 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-      storage.set({ [identifier]: noteText }, () => {
-        noteStatus.textContent = dict.savedStatus;
-        setTimeout(() => {
-          if (noteStatus.textContent === dict.savedStatus) {
-            noteStatus.textContent = '';
-          }
-        }, 2000);
+      storage.get([identifier], (res) => {
+        const oldVal = res && res[identifier];
+        let history = [];
+        let lastN = '';
+
+        if (typeof oldVal === 'object' && oldVal !== null) {
+          history = Array.isArray(oldVal.namesHistory) ? oldVal.namesHistory : (oldVal.name ? [oldVal.name] : []);
+          lastN = oldVal.lastName || '';
+        }
+
+        if (lastN && !history.includes(lastN)) {
+          history.push(lastN);
+        }
+
+        const noteObj = {
+          text: noteText,
+          lastName: lastN,
+          namesHistory: history,
+          updatedAt: new Date().toISOString()
+        };
+
+        storage.set({ [identifier]: noteObj }, () => {
+          noteStatus.textContent = dict.savedStatus;
+          setTimeout(() => {
+            if (noteStatus.textContent === dict.savedStatus) noteStatus.textContent = '';
+          }, 2000);
+        });
       });
     }, 500);
   });
@@ -647,12 +669,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     storage.get(null, (items) => {
       const excludeKeys = ['custom_tags', 'language', 'auto_paste', 'auto_open_trackers'];
-      const keys = Object.keys(items).filter(k => !excludeKeys.includes(k));
+      const keys = Object.keys(items).filter(k => !excludeKeys.includes(k));       
       const query = filterQuery.toLowerCase();
 
       const filteredKeys = keys.filter(key => {
-        const note = items[key] || '';
-        return key.toLowerCase().includes(query) || note.toLowerCase().includes(query);
+        const val = items[key];
+        const noteText = (typeof val === 'object' && val !== null) ? (val.text || '') : (val || '');
+        const lastName = (typeof val === 'object' && val !== null) ? (val.lastName || '') : '';
+        const historyArr = (typeof val === 'object' && val !== null && Array.isArray(val.namesHistory)) ? val.namesHistory : [];
+        const historyStr = historyArr.join(' ').toLowerCase();
+
+        return key.toLowerCase().includes(query) || 
+               noteText.toLowerCase().includes(query) || 
+               lastName.toLowerCase().includes(query) || 
+               historyStr.includes(query);
       });
 
       if (filteredKeys.length === 0) {
@@ -661,12 +691,30 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       filteredKeys.forEach(key => {
-        const noteText = items[key];
+        const rawItem = items[key];
+        let noteText = '';
+        let lastName = '';
+        let history = [];
+
+        if (typeof rawItem === 'string') {
+          noteText = rawItem;
+        } else if (rawItem && typeof rawItem === 'object') {
+          noteText = rawItem.text || '';
+          lastName = rawItem.lastName || '';
+          history = Array.isArray(rawItem.namesHistory) ? rawItem.namesHistory : [];
+        }
+
+        const nameHeader = lastName ? `<span style="color: #4cd137; font-weight: bold; margin-left: 6px;">(${lastName})</span>` : '';
+        const akaHtml = (history.length > 1) 
+          ? `<div class="note-item-aka" style="font-size: 10px; color: #aaa; margin-top: 3px;">📜 AKA: ${history.join(' ➔ ')}</div>` 
+          : '';
+
         const itemEl = document.createElement('div');
         itemEl.className = 'note-item';
         itemEl.innerHTML = `
-          <div class="note-item-id">${key}</div>
-          <div class="note-item-text">${noteText}</div>
+          <div class="note-item-id" style="color: #ff9900; font-weight: bold;">${key}${nameHeader}</div>
+          <div class="note-item-text" style="color: #ddd; margin-top: 2px;">${noteText}</div>
+          ${akaHtml}
         `;
         itemEl.addEventListener('click', () => {
           profileInput.value = key;
