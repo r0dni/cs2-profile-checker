@@ -1,4 +1,20 @@
 
+  async function fetchSteamNickname(steamId) {
+    if (!/^\d{17}$/.test(steamId)) return '';
+    try {
+      const res = await fetch(`https://steamcommunity.com/profiles/${steamId}/?xml=1`);
+      const xmlText = await res.text();
+      const xmlDoc = new DOMParser().parseFromString(xmlText, 'text/xml');
+      const nameNode = xmlDoc.getElementsByTagName('steamID')[0];
+      if (nameNode && nameNode.textContent) {
+        return sanitizeNickname(nameNode.textContent);
+      }
+    } catch (e) {
+      console.error('Error fetching steam nickname:', e);
+    }
+    return '';
+  }
+
   function sanitizeNickname(name) {
     if (!name) return 'No Nickname';
     const trimmed = name.trim();
@@ -600,14 +616,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
-      storage.get([identifier], (res) => {
+      storage.get([identifier], async (res) => {
         const oldVal = res && res[identifier];
         let history = [];
         let lastN = '';
 
         if (typeof oldVal === 'object' && oldVal !== null) {
-          history = Array.isArray(oldVal.namesHistory) ? oldVal.namesHistory : (oldVal.name ? [oldVal.name] : []);
+          history = Array.isArray(oldVal.namesHistory) ? [...oldVal.namesHistory] : (oldVal.name ? [oldVal.name] : []);
           lastN = oldVal.lastName || '';
+        }
+
+        if (!lastN) {
+          lastN = await fetchSteamNickname(identifier);
         }
 
         if (lastN && !history.includes(lastN)) {
