@@ -994,3 +994,12 @@ body.detached #app {
 ::-webkit-scrollbar-thumb:hover {
   background: #ff9900;
 }
+
+/* v1.2.2 Player card click navigation hover styles */
+.live-player-card {
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+.live-player-card:hover {
+  border-color: var(--accent-orange) !important;
+}

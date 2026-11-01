@@ -788,6 +788,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       const isDead = hp === 0;
       card.className = `live-player-card${isDead ? ' dead' : ''}`;
 
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('.live-tracker-link') || e.target.closest('a')) return;
+
+        const steamId = player.steamid || player.steamId;
+        if (steamId) {
+          profileTabBtn.click();
+          profileInput.value = steamId;
+          loadNoteForIdentifier(steamId);
+        }
+      });
+
       let badgesHtml = '';
       let cleanNoteText = noteText || '';
       if (noteText) {
@@ -810,7 +821,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const statsDiv = document.createElement('div');
       statsDiv.className = 'player-stats';
       statsDiv.style.cssText = 'font-size: 10px; color: #aaa; margin: 2px 0;';
-      statsDiv.textContent = `❤️ ${hp} ${armorIcon}${armor} | 💵 $${money} | 🎯 ${kills}/${deaths}/${assists}`;
+      statsDiv.textContent = `❤️ ${hp} ${armorIcon}${armor} | 💵 ${money} | 🎯 ${kills}/${deaths}/${assists}`;
 
       const sid = player.steamid || player.steamId;
 
