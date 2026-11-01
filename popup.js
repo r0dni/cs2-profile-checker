@@ -798,8 +798,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   async function pollGsiState() {
+    const dict = i18n[currentLang] || i18n.ru;
     try {
-      const dict = i18n[currentLang] || i18n.ru;
       const res = await fetch('http://127.0.0.1:3000/status');
       const data = await res.json();
 
@@ -824,19 +824,18 @@ document.addEventListener('DOMContentLoaded', async () => {
           debugInfo.textContent = 'GSI Keys: none (Disconnected)';
         }
         matchInfoCard.classList.add('hidden');
-        teamTList.innerHTML = `<div class="no-notes">${'Нет активных игроков'}</div>`;
-        teamCTList.innerHTML = `<div class="no-notes">${'Нет активных игроков'}</div>`;
+        teamTList.innerHTML = `<div class="no-notes">${dict.noPlayersLive}</div>`;
+        teamCTList.innerHTML = `<div class="no-notes">${dict.noPlayersLive}</div>`;
       }
     } catch (e) {
-      console.error('GSI Render error:', e);
       gsiIndicator.className = 'gsi-dot disconnected';
       gsiStatusText.textContent = dict.gsiWaiting;
       if (debugInfo) {
-        debugInfo.textContent = 'GSI Keys: none (Disconnected)';
+        debugInfo.textContent = 'GSI Keys: none (Disconnected / Server Off)';
       }
       matchInfoCard.classList.add('hidden');
-      teamTList.innerHTML = `<div class="no-notes">${i18n[currentLang]?.noPlayersLive || i18n.ru.noPlayersLive}</div>`;
-      teamCTList.innerHTML = `<div class="no-notes">${i18n[currentLang]?.noPlayersLive || i18n.ru.noPlayersLive}</div>`;
+      teamTList.innerHTML = `<div class="no-notes">${dict.noPlayersLive}</div>`;
+      teamCTList.innerHTML = `<div class="no-notes">${dict.noPlayersLive}</div>`;
     }
   }
 
