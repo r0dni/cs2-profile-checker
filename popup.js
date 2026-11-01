@@ -811,7 +811,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const statsDiv = document.createElement('div');
       statsDiv.className = 'player-stats';
       statsDiv.style.cssText = 'font-size: 10px; color: #aaa; margin: 2px 0;';
-      statsDiv.textContent = `❤️ ${hp} ${armorIcon}${armor} | 💵 ${money} | 🎯 ${kills}/${deaths}/${assists}`;
+      statsDiv.textContent = `❤️ ${hp} ${armorIcon}${armor} | 💵 $${money} | 🎯 ${kills}/${deaths}/${assists}`;
 
       const sid = player.steamid || player.steamId;
 
@@ -854,23 +854,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  // About Modal elements
+  // About Modal elements & listeners
   const aboutBtn = document.getElementById('aboutBtn');
   const aboutModal = document.getElementById('aboutModal');
-  const closeAboutModal = document.getElementById('closeAboutModal');
+  const closeAboutBtn = document.getElementById('closeAboutModal') || document.querySelector('.close-modal');
 
-  if (aboutBtn && aboutModal && closeAboutModal) {
-    aboutBtn.addEventListener('click', () => aboutModal.classList.remove('hidden'));
-    closeAboutModal.addEventListener('click', () => aboutModal.classList.add('hidden'));
-    aboutModal.addEventListener('click', (e) => {
-      if (e.target === aboutModal) aboutModal.classList.add('hidden');
+  if (aboutBtn && aboutModal) {
+    aboutBtn.addEventListener('click', () => {
+      aboutModal.classList.remove('hidden');
+      aboutModal.style.display = 'flex';
     });
   }
+  if (closeAboutBtn && aboutModal) {
+    closeAboutBtn.addEventListener('click', () => {
+      aboutModal.classList.add('hidden');
+      aboutModal.style.display = 'none';
+    });
+  }
+  window.addEventListener('click', (e) => {
+    if (e.target === aboutModal) {
+      aboutModal.classList.add('hidden');
+      aboutModal.style.display = 'none';
+    }
+  });
 
-  // External link buttons handler
-  document.querySelectorAll('.external-link-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const url = btn.getAttribute('data-url');
+  // External link buttons & <a> tags handler
+  document.querySelectorAll('.external-link-btn, #aboutModal a[href]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      const url = el.getAttribute('data-url') || el.getAttribute('href');
       if (url) {
         chrome.tabs.create({ url });
       }

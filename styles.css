@@ -938,3 +938,23 @@ body.detached .live-tracker-link {
   border-color: var(--accent-orange);
   color: var(--accent-orange);
 }
+
+/* #aboutModal precise styling */
+#aboutModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.75);
+  z-index: 9999;
+  display: none;
+  justify-content: center;
+  align-items: center;
+}
+#aboutModal:not(.hidden) {
+  display: flex !important;
+}
+#aboutModal.hidden {
+  display: none !important;
+}
