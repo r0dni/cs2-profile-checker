@@ -832,9 +832,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (data.map) {
           matchInfoCard.classList.remove('hidden');
-          const rawMapName = data.map.name || data.map.mode || 'CS2 Match';
-          const cleanMapName = rawMapName.replace(/^(de_|cs_|ar_|fy_)/i, '').toUpperCase();
-          matchMap.textContent = `${dict.mapLabel}${cleanMapName}`;
+          const mapName = (data.map.name || data.map.mode || 'CS2 Match').replace(/^(de_|cs_|ar_|fy_)/i, '').toUpperCase();
+          matchMap.textContent = `${dict.mapLabel}${mapName}`;
           matchScore.textContent = `${dict.scoreLabel}CT ${data.map.score_ct || 0} : T ${data.map.score_t || 0}`;
         }
 

@@ -30,7 +30,7 @@ const server = http.createServer((req, res) => {
     if (Date.now() - lastHeartbeat > 45000) {
       latestMatchState.connected = false;
     }
-    if (Date.now() - lastPacketTime > 30000) {
+    if (Date.now() - lastPacketTime > 60000) {
       sessionPlayers.clear();
       latestMatchState.players = [];
       latestMatchState.map = null;
@@ -58,15 +58,14 @@ const server = http.createServer((req, res) => {
         latestMatchState.rawKeys = Object.keys(data);
 
         console.log("Получен пакет от CS2. Ключи:", Object.keys(data));
-        if (data.allplayers) {
-          console.log("allplayers keys:", Object.keys(data.allplayers || {}));
+
+        let currentMapName = data.map?.name || data.provider?.map || null;
+        if (currentMapName && currentMapName !== lastMapName) {
+          sessionPlayers.clear();
+          lastMapName = currentMapName;
         }
 
         if (data.map) {
-          if (data.map.name && data.map.name !== lastMapName) {
-            sessionPlayers.clear();
-            lastMapName = data.map.name;
-          }
           lastMapObj = {
             name: data.map.name || (lastMapObj ? lastMapObj.name : null),
             mode: data.map.mode || (lastMapObj ? lastMapObj.mode : null),
@@ -76,6 +75,15 @@ const server = http.createServer((req, res) => {
           };
           latestMatchState.map = lastMapObj;
         } else if (lastMapObj) {
+          latestMatchState.map = lastMapObj;
+        } else if (data.provider?.map) {
+          lastMapObj = {
+            name: data.provider.map,
+            mode: data.provider.mode || 'unknown',
+            phase: 'live',
+            score_ct: 0,
+            score_t: 0
+          };
           latestMatchState.map = lastMapObj;
         }
 
@@ -90,21 +98,23 @@ const server = http.createServer((req, res) => {
           Object.entries(data.allplayers).forEach(([steamid, playerData]) => {
             if (steamid && steamid !== 'observer') {
               const pState = playerData.state || {};
-              const armor = typeof pState.armor === 'number' ? pState.armor : 0;
-              const helmet = Boolean(pState.helmet);
+              const armor = typeof pState.armor === 'number' ? pState.armor : (playerData.armor ?? 0);
+              const helmet = Boolean(pState.helmet ?? playerData.helmet);
               const pStats = playerData.match_stats || {};
+
+              const existing = sessionPlayers.get(steamid) || {};
               sessionPlayers.set(steamid, {
                 steamid: steamid,
                 steamId: steamid,
-                name: playerData.name || 'Unknown',
-                team: playerData.team || 'CT',
-                hp: pState.health ?? 100,
-                money: pState.money ?? 0,
+                name: playerData.name || existing.name || 'Unknown',
+                team: playerData.team || existing.team || 'CT',
+                hp: pState.health ?? existing.hp ?? 100,
+                money: pState.money ?? existing.money ?? 0,
                 armor: armor,
                 helmet: helmet,
-                kills: pStats.kills ?? 0,
-                deaths: pStats.deaths ?? 0,
-                assists: pStats.assists ?? 0
+                kills: pStats.kills ?? existing.kills ?? 0,
+                deaths: pStats.deaths ?? existing.deaths ?? 0,
+                assists: pStats.assists ?? existing.assists ?? 0
               });
             }
           });
@@ -113,39 +123,24 @@ const server = http.createServer((req, res) => {
         if (data.player && data.player.steamid) {
           const localSteamId = data.player.steamid;
           const pState = data.player.state || {};
-          const armor = typeof pState.armor === 'number' ? pState.armor : 0;
-          const helmet = Boolean(pState.helmet);
+          const armor = typeof pState.armor === 'number' ? pState.armor : (data.player.armor ?? 0);
+          const helmet = Boolean(pState.helmet ?? data.player.helmet);
           const pStats = data.player.match_stats || {};
-          const localPlayerObj = {
+
+          const existing = sessionPlayers.get(localSteamId) || {};
+          sessionPlayers.set(localSteamId, {
             steamid: localSteamId,
             steamId: localSteamId,
-            name: data.player.name || 'You',
-            team: data.player.team || 'unknown',
-            hp: pState.health ?? 100,
-            money: pState.money ?? 0,
+            name: data.player.name || existing.name || 'You',
+            team: data.player.team || existing.team || 'unknown',
+            hp: pState.health ?? existing.hp ?? 100,
+            money: pState.money ?? existing.money ?? 0,
             armor: armor,
             helmet: helmet,
-            kills: pStats.kills ?? 0,
-            deaths: pStats.deaths ?? 0,
-            assists: pStats.assists ?? 0
-          };
-          if (!sessionPlayers.has(localSteamId)) {
-            sessionPlayers.set(localSteamId, localPlayerObj);
-          } else {
-            const existing = sessionPlayers.get(localSteamId);
-            sessionPlayers.set(localSteamId, {
-              ...existing,
-              team: data.player.team || existing.team,
-              name: data.player.name || existing.name,
-              hp: pState.health ?? existing.hp,
-              money: pState.money ?? existing.money,
-              armor: armor,
-              helmet: helmet,
-              kills: pStats.kills ?? existing.kills,
-              deaths: pStats.deaths ?? existing.deaths,
-              assists: pStats.assists ?? existing.assists
-            });
-          }
+            kills: pStats.kills ?? existing.kills ?? 0,
+            deaths: pStats.deaths ?? existing.deaths ?? 0,
+            assists: pStats.assists ?? existing.assists ?? 0
+          });
         }
 
         latestMatchState.players = Array.from(sessionPlayers.values());
