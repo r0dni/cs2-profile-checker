@@ -889,4 +889,49 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
+
+  // About Modal dynamic creation handler
+  const aboutBtnEl = document.getElementById('aboutBtn');
+  if (aboutBtnEl) {
+    aboutBtnEl.addEventListener('click', (e) => {
+      e.preventDefault();
+      showAboutModal();
+    });
+  }
+
+  function showAboutModal() {
+    let modal = document.getElementById('aboutModal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'aboutModal';
+      document.body.appendChild(modal);
+    }
+    modal.className = 'custom-modal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;';
+    modal.innerHTML = '<div style="background:#1e1f29;border:1px solid #ff9900;border-radius:8px;padding:20px;max-width:380px;width:100%;color:#fff;box-shadow:0 10px 25px rgba(0,0,0,0.5);font-family:sans-serif;position:relative;">' +
+      '<button id="closeAboutModalX" style="position:absolute;top:10px;right:10px;background:none;border:none;color:#aaa;font-size:18px;cursor:pointer;">✖</button>' +
+      '<h2 style="margin:0 0 10px 0;color:#ff9900;font-size:18px;display:flex;align-items:center;gap:8px;">🎯 CS2 Profile Checker <span style="font-size:12px;color:#888;">v1.2.2</span></h2>' +
+      '<p style="font-size:13px;color:#ccc;margin:5px 0 15px 0;">Developer: <b>Rodni</b> (<a href="https://t.me/r0dni" class="ext-link" style="color:#ff9900;text-decoration:none;">@r0dni</a>)</p>' +
+      '<hr style="border:none;border-top:1px solid #333;margin:12px 0;">' +
+      '<div style="display:flex;flex-direction:column;gap:8px;">' +
+      '<button class="ext-link-btn" data-url="https://t.me/r0dni" style="background:#2a2b3d;color:#fff;border:1px solid #444;padding:8px;border-radius:4px;cursor:pointer;font-size:12px;text-align:left;">💬 Написать в Telegram (@r0dni)</button>' +
+      '<button class="ext-link-btn" data-url="https://github.com/r0dni/cs2-profile-checker/issues" style="background:#2a2b3d;color:#fff;border:1px solid #444;padding:8px;border-radius:4px;cursor:pointer;font-size:12px;text-align:left;">🐛 Сообщить об ошибке / GitHub</button>' +
+      '</div>' +
+      '<div style="margin-top:15px;background:#15161e;padding:10px;border-radius:6px;border:1px solid #2a2b3d;">' +
+      '<div style="font-size:11px;color:#ff9900;font-weight:bold;margin-bottom:6px;">☕ Поддержать проект / Донат:</div>' +
+      '<div style="font-size:11px;color:#aaa;line-height:1.4;">• Buy Me a Coffee / СБП (Т-Банк)<br>• Crypto (USDT TRC20)</div>' +
+      '</div></div>';
+
+    document.getElementById('closeAboutModalX').onclick = () => modal.remove();
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+
+    modal.querySelectorAll('.ext-link-btn, .ext-link').forEach(elem => {
+      elem.onclick = (e) => {
+        e.preventDefault();
+        const url = elem.getAttribute('data-url') || elem.getAttribute('href');
+        if (url && chrome.tabs) chrome.tabs.create({ url });
+      };
+    });
+  }
+
 });
