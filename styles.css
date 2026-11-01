@@ -1021,3 +1021,17 @@ body.detached #app {
   border-color: #1b2838;
   background-color: rgba(27, 40, 56, 0.4);
 }
+
+/* v1.2.2 Trackers grid layout for 5 buttons */
+.trackers-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.tracker-btn.steam {
+  grid-column: span 2;
+}
+.tracker-btn.steam:hover {
+  border-color: #66c0f4;
+  background-color: rgba(102, 192, 244, 0.15);
+}

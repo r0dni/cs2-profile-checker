@@ -447,7 +447,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   });
 
-  function loadNoteForIdentifier(identifier) {
+  async function loadNoteForIdentifier(identifier) {
     if (!identifier) {
       playerNote.value = '';
       noteStatus.textContent = '';
@@ -455,33 +455,41 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     storage.get([identifier], async (result) => {
       const val = result && result[identifier];
-      if (!val) {
-        playerNote.value = '';
-        noteStatus.textContent = '';
-      } else if (typeof val === 'string') {
-        playerNote.value = val;
-      } else if (typeof val === 'object') {
-        playerNote.value = val.text || '';
-        if (!val.lastName && /^d{17}$/.test(identifier)) {
-          try {
-            const resp = await fetch(`https://steamcommunity.com/profiles/${identifier}/?xml=1`);
-            const xmlText = await resp.text();
-            const parser = new DOMParser();
-            const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-            const steamIDNode = xmlDoc.getElementsByTagName('steamID')[0];
-            if (steamIDNode && steamIDNode.textContent) {
-              const fetchedName = sanitizeNickname(steamIDNode.textContent);
-              let history = Array.isArray(val.namesHistory) ? val.namesHistory : [];
+      let currentText = '';
+      let currentLastName = '';
+      let history = [];
+
+      if (typeof val === 'string') {
+        currentText = val;
+      } else if (val && typeof val === 'object') {
+        currentText = val.text || '';
+        currentLastName = val.lastName || '';
+        history = Array.isArray(val.namesHistory) ? val.namesHistory : [];
+      }
+
+      playerNote.value = currentText;
+
+      if (!currentLastName && /^\d{17}$/.test(identifier)) {
+        try {
+          const res = await fetch(`https://steamcommunity.com/profiles/${identifier}/?xml=1`);
+          const xmlText = await res.text();
+          const xmlDoc = new DOMParser().parseFromString(xmlText, 'text/xml');
+          const nameNode = xmlDoc.getElementsByTagName('steamID')[0];
+          if (nameNode && nameNode.textContent) {
+            const fetchedName = sanitizeNickname(nameNode.textContent);
+            if (fetchedName) {
               if (!history.includes(fetchedName)) history.push(fetchedName);
               const updatedObj = {
-                text: val.text || '',
+                text: currentText,
                 lastName: fetchedName,
                 namesHistory: history,
-                updatedAt: val.updatedAt || new Date().toISOString()
+                updatedAt: new Date().toISOString()
               };
               storage.set({ [identifier]: updatedObj });
             }
-          } catch (e) {}
+          }
+        } catch (e) {
+          console.error('Error fetching steam name:', e);
         }
       }
     });
@@ -857,12 +865,32 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-    function renderPlayerCard(player, container, noteText) {
+    function renderPlayerCard(player, container, noteData) {
     try {
       const card = document.createElement('div');
       const hp = player.hp !== undefined ? player.hp : 100;
       const isDead = hp === 0;
       card.className = `live-player-card${isDead ? ' dead' : ''}`;
+
+      let rawNoteText = '';
+      let noteObj = null;
+
+      if (typeof noteData === 'string') {
+        rawNoteText = noteData;
+      } else if (noteData && typeof noteData === 'object') {
+        noteObj = noteData;
+        rawNoteText = noteData.text || '';
+      }
+
+      let badgesHtml = '';
+      let cleanNoteText = rawNoteText;
+      if (rawNoteText) {
+        customTags.forEach(tag => {
+          if (rawNoteText.includes(tag.name)) {
+            badgesHtml += `<span class="tag-badge" data-color="${tag.color}" style="font-size: 8px; padding: 1px 3px; margin-right: 3px;">${tag.name}</span>`;
+          }
+        });
+      }
 
       const sid = player.steamid || player.steamId;
       const currentName = sanitizeNickname(player.name);
@@ -887,13 +915,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             if (currentName && !history.includes(currentName)) {
               history.push(currentName);
-              const noteObj = {
+              const noteObjUpdated = {
                 text: existingText,
                 lastName: currentName,
                 namesHistory: history,
                 updatedAt: new Date().toISOString()
               };
-              storage.set({ [sid]: noteObj });
+              storage.set({ [sid]: noteObjUpdated });
             }
           }
         });
@@ -908,16 +936,6 @@ document.addEventListener('DOMContentLoaded', async () => {
           loadNoteForIdentifier(sid);
         }
       });
-
-      let badgesHtml = '';
-      let cleanNoteText = noteText || '';
-      if (noteText) {
-        customTags.forEach(tag => {
-          if (noteText.includes(tag.name)) {
-            badgesHtml += `<span class="tag-badge" data-color="${tag.color}" style="font-size: 8px; padding: 1px 3px; margin-right: 3px;">${tag.name}</span>`;
-          }
-        });
-      }
 
       const armor = player.armor !== undefined ? player.armor : 0;
       const helmet = Boolean(player.helmet);
@@ -943,10 +961,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       card.appendChild(headerDiv);
       card.appendChild(statsDiv);
 
-      if (noteText) {
+      let noteHtml = rawNoteText ? `<div class="live-player-note">${badgesHtml}<span style="margin-left: 2px;">${cleanNoteText}</span></div>` : '';
+      if (noteHtml) {
         const noteDiv = document.createElement('div');
-        noteDiv.className = 'live-player-note';
-        noteDiv.innerHTML = `${badgesHtml}<span style="margin-left: 2px;">${cleanNoteText}</span>`;
+        noteDiv.innerHTML = noteHtml;
         card.appendChild(noteDiv);
       }
 
