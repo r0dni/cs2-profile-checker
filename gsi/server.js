@@ -2,6 +2,7 @@ const http = require('http');
 
 const sessionPlayers = new Map();
 let lastMapName = '';
+let lastMapObj = null;
 
 let latestMatchState = {
   connected: false,
@@ -26,15 +27,16 @@ const server = http.createServer((req, res) => {
   }
 
   if (req.method === 'GET' && req.url === '/status') {
-    // 45 seconds timeout for connection status
     if (Date.now() - lastHeartbeat > 45000) {
       latestMatchState.connected = false;
     }
-    if (Date.now() - lastPacketTime > 5000) {
+    if (Date.now() - lastPacketTime > 30000) {
       sessionPlayers.clear();
       latestMatchState.players = [];
       latestMatchState.map = null;
       latestMatchState.round = null;
+      lastMapName = '';
+      lastMapObj = null;
     }
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -57,8 +59,34 @@ const server = http.createServer((req, res) => {
 
         console.log("Получен пакет от CS2. Ключи:", Object.keys(data));
         if (data.allplayers) {
+          console.log("allplayers keys:", Object.keys(data.allplayers || {}));
+        }
+
+        if (data.map) {
+          if (data.map.name && data.map.name !== lastMapName) {
+            sessionPlayers.clear();
+            lastMapName = data.map.name;
+          }
+          lastMapObj = {
+            name: data.map.name || (lastMapObj ? lastMapObj.name : null),
+            mode: data.map.mode || (lastMapObj ? lastMapObj.mode : null),
+            phase: data.map.phase || (lastMapObj ? lastMapObj.phase : null),
+            score_ct: data.map.team_ct?.score ?? (lastMapObj ? lastMapObj.score_ct : 0),
+            score_t: data.map.team_t?.score ?? (lastMapObj ? lastMapObj.score_t : 0)
+          };
+          latestMatchState.map = lastMapObj;
+        } else if (lastMapObj) {
+          latestMatchState.map = lastMapObj;
+        }
+
+        if (data.round) {
+          latestMatchState.round = {
+            phase: data.round.phase
+          };
+        }
+
+        if (data.allplayers) {
           console.log("ALLPLAYERS ARMOR LOG:", Object.values(data.allplayers).map(p => `${p.name}: armor=${p.state?.armor}, helmet=${p.state?.helmet}`));
-          sessionPlayers.clear();
           Object.entries(data.allplayers).forEach(([steamid, playerData]) => {
             if (steamid && steamid !== 'observer') {
               const pState = playerData.state || {};
