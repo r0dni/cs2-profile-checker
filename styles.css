@@ -1015,3 +1015,9 @@ body.detached #app {
   border: 1px solid var(--border-color);
   display: inline-block;
 }
+
+/* v1.2.2 Steam button hover style */
+.steam:hover {
+  border-color: #1b2838;
+  background-color: rgba(27, 40, 56, 0.4);
+}

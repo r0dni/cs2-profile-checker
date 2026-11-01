@@ -1,3 +1,10 @@
+
+  function sanitizeNickname(name) {
+    if (!name) return 'No Nickname';
+    const trimmed = name.trim();
+    if (!trimmed) return 'Invisible Name';
+    return trimmed;
+  }
 const i18n = {
   ru: {
     appTitle: "CS2 Profile Checker",
@@ -446,7 +453,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       noteStatus.textContent = '';
       return;
     }
-    storage.get([identifier], (result) => {
+    storage.get([identifier], async (result) => {
       const val = result && result[identifier];
       if (!val) {
         playerNote.value = '';
@@ -455,6 +462,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         playerNote.value = val;
       } else if (typeof val === 'object') {
         playerNote.value = val.text || '';
+        if (!val.lastName && /^d{17}$/.test(identifier)) {
+          try {
+            const resp = await fetch(`https://steamcommunity.com/profiles/${identifier}/?xml=1`);
+            const xmlText = await resp.text();
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+            const steamIDNode = xmlDoc.getElementsByTagName('steamID')[0];
+            if (steamIDNode && steamIDNode.textContent) {
+              const fetchedName = sanitizeNickname(steamIDNode.textContent);
+              let history = Array.isArray(val.namesHistory) ? val.namesHistory : [];
+              if (!history.includes(fetchedName)) history.push(fetchedName);
+              const updatedObj = {
+                text: val.text || '',
+                lastName: fetchedName,
+                namesHistory: history,
+                updatedAt: val.updatedAt || new Date().toISOString()
+              };
+              storage.set({ [identifier]: updatedObj });
+            }
+          } catch (e) {}
+        }
       }
     });
   }
@@ -836,45 +864,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       const isDead = hp === 0;
       card.className = `live-player-card${isDead ? ' dead' : ''}`;
 
-      card.addEventListener('click', (e) => {
-        if (e.target.closest('.live-tracker-link') || e.target.closest('a')) return;
-
-        const steamId = player.steamid || player.steamId;
-        if (steamId) {
-          profileTabBtn.click();
-          profileInput.value = steamId;
-          loadNoteForIdentifier(steamId);
-        }
-      });
-
-      let badgesHtml = '';
-      let cleanNoteText = noteText || '';
-      if (noteText) {
-        customTags.forEach(tag => {
-          if (noteText.includes(tag.name)) {
-            badgesHtml += `<span class="tag-badge" data-color="${tag.color}" style="font-size: 8px; padding: 1px 3px; margin-right: 3px;">${tag.name}</span>`;
-          }
-        });
-      }
-
-      const armor = player.armor !== undefined ? player.armor : 0;
-      const helmet = Boolean(player.helmet);
-      const armorIcon = helmet ? '🪖' : '🛡️';
-
-      const money = player.money !== undefined ? player.money : 0;
-      const kills = player.kills || 0;
-      const deaths = player.deaths || 0;
-      const assists = player.assists || 0;
-
-      const statsDiv = document.createElement('div');
-      statsDiv.className = 'player-stats';
-      statsDiv.style.cssText = 'font-size: 10px; color: #aaa; margin: 2px 0;';
-      statsDiv.textContent = `❤️ ${hp} ${armorIcon}${armor} | 💵 ${money} | 🎯 ${kills}/${deaths}/${assists}`;
-
       const sid = player.steamid || player.steamId;
-      const currentName = player.name;
+      const currentName = sanitizeNickname(player.name);
 
-      if (sid && currentName) {
+      if (sid && currentName && currentName !== 'No Nickname' && currentName !== 'Invisible Name') {
         storage.get([sid], (res) => {
           if (res && res[sid]) {
             const oldData = res[sid];
@@ -906,10 +899,44 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
       }
 
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('.live-tracker-link') || e.target.closest('a')) return;
+
+        if (sid) {
+          profileTabBtn.click();
+          profileInput.value = sid;
+          loadNoteForIdentifier(sid);
+        }
+      });
+
+      let badgesHtml = '';
+      let cleanNoteText = noteText || '';
+      if (noteText) {
+        customTags.forEach(tag => {
+          if (noteText.includes(tag.name)) {
+            badgesHtml += `<span class="tag-badge" data-color="${tag.color}" style="font-size: 8px; padding: 1px 3px; margin-right: 3px;">${tag.name}</span>`;
+          }
+        });
+      }
+
+      const armor = player.armor !== undefined ? player.armor : 0;
+      const helmet = Boolean(player.helmet);
+      const armorIcon = helmet ? '🪖' : '🛡️';
+
+      const money = player.money !== undefined ? player.money : 0;
+      const kills = player.kills || 0;
+      const deaths = player.deaths || 0;
+      const assists = player.assists || 0;
+
+      const statsDiv = document.createElement('div');
+      statsDiv.className = 'player-stats';
+      statsDiv.style.cssText = 'font-size: 10px; color: #aaa; margin: 2px 0;';
+      statsDiv.textContent = `❤️ ${hp} ${armorIcon}${armor} | 💵 ${money} | 🎯 ${kills}/${deaths}/${assists}`;
+
       const headerDiv = document.createElement('div');
       headerDiv.className = 'live-player-header';
       headerDiv.innerHTML = `
-        <span class="live-player-name" title="${player.name}">${player.name}</span>
+        <span class="live-player-name" title="${currentName}">${currentName}</span>
         <span class="live-player-id">${sid}</span>
       `;
 
@@ -930,6 +957,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         <button class="live-tracker-link" data-url="https://cs2tracker.gg/stats/${sid}">CS2T</button>
         <button class="live-tracker-link" data-url="https://faceitfinder.com/profile/${sid}">FF</button>
         <button class="live-tracker-link" data-url="https://csstats.gg/player/${sid}">CSS</button>
+        <button class="live-tracker-link" data-url="https://steamcommunity.com/profiles/${sid}">STM</button>
       `;
 
       trackersDiv.querySelectorAll('.live-tracker-link').forEach(btn => {
