@@ -832,7 +832,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (data.map) {
           matchInfoCard.classList.remove('hidden');
-          matchMap.textContent = `${dict.mapLabel}${data.map.name || '-'}`;
+          const rawMapName = data.map.name || data.map.mode || 'CS2 Match';
+          const cleanMapName = rawMapName.replace(/^(de_|cs_|ar_|fy_)/i, '');
+          matchMap.textContent = `${dict.mapLabel}${cleanMapName}`;
           matchScore.textContent = `${dict.scoreLabel}CT ${data.map.score_ct || 0} : T ${data.map.score_t || 0}`;
         }
 
@@ -891,13 +893,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       const isDead = hp === 0;
       card.className = `live-player-card${isDead ? ' dead' : ''}`;
 
-      let rawNoteText = '';
-      let noteObj = null;
+      card.addEventListener('click', (e) => {
+        if (e.target.closest('.live-tracker-link') || e.target.closest('a')) return;
+        card.classList.toggle('expanded');
+      });
 
+      let rawNoteText = '';
       if (typeof noteData === 'string') {
         rawNoteText = noteData;
       } else if (noteData && typeof noteData === 'object') {
-        noteObj = noteData;
         rawNoteText = noteData.text || '';
       }
 
@@ -946,16 +950,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
       }
 
-      card.addEventListener('click', (e) => {
-        if (e.target.closest('.live-tracker-link') || e.target.closest('a')) return;
-
-        if (sid) {
-          profileTabBtn.click();
-          profileInput.value = sid;
-          loadNoteForIdentifier(sid);
-        }
-      });
-
       const armor = player.armor !== undefined ? player.armor : 0;
       const helmet = Boolean(player.helmet);
       const armorIcon = helmet ? '🪖' : '🛡️';
@@ -965,26 +959,30 @@ document.addEventListener('DOMContentLoaded', async () => {
       const deaths = player.deaths || 0;
       const assists = player.assists || 0;
 
+      // Header row
+      const headerRow = document.createElement('div');
+      headerRow.className = 'live-player-header-row';
+      headerRow.innerHTML = `
+        <span class="live-player-name" title="${currentName}">${currentName}</span>
+        <span class="live-player-expand-icon">▼</span>
+      `;
+      card.appendChild(headerRow);
+
+      // Details container
+      const detailsDiv = document.createElement('div');
+      detailsDiv.className = 'live-player-details';
+
       const statsDiv = document.createElement('div');
       statsDiv.className = 'player-stats';
       statsDiv.style.cssText = 'font-size: 10px; color: #aaa; margin: 2px 0;';
       statsDiv.textContent = `❤️ ${hp} ${armorIcon}${armor} | 💵 ${money} | 🎯 ${kills}/${deaths}/${assists}`;
-
-      const headerDiv = document.createElement('div');
-      headerDiv.className = 'live-player-header';
-      headerDiv.innerHTML = `
-        <span class="live-player-name" title="${currentName}">${currentName}</span>
-        <span class="live-player-id">${sid}</span>
-      `;
-
-      card.appendChild(headerDiv);
-      card.appendChild(statsDiv);
+      detailsDiv.appendChild(statsDiv);
 
       let noteHtml = rawNoteText ? `<div class="live-player-note">${badgesHtml}<span style="margin-left: 2px;">${cleanNoteText}</span></div>` : '';
       if (noteHtml) {
         const noteDiv = document.createElement('div');
         noteDiv.innerHTML = noteHtml;
-        card.appendChild(noteDiv);
+        detailsDiv.appendChild(noteDiv);
       }
 
       const trackersDiv = document.createElement('div');
@@ -1003,7 +1001,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
       });
 
-      card.appendChild(trackersDiv);
+      detailsDiv.appendChild(trackersDiv);
+      card.appendChild(detailsDiv);
       container.appendChild(card);
     } catch (err) {
       console.error('Render player card error:', err);

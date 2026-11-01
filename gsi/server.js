@@ -12,6 +12,7 @@ let latestMatchState = {
 };
 
 let lastHeartbeat = Date.now();
+let lastPacketTime = Date.now();
 
 const server = http.createServer((req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -29,6 +30,12 @@ const server = http.createServer((req, res) => {
     if (Date.now() - lastHeartbeat > 45000) {
       latestMatchState.connected = false;
     }
+    if (Date.now() - lastPacketTime > 5000) {
+      sessionPlayers.clear();
+      latestMatchState.players = [];
+      latestMatchState.map = null;
+      latestMatchState.round = null;
+    }
 
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify(latestMatchState));
@@ -44,6 +51,7 @@ const server = http.createServer((req, res) => {
       try {
         const data = JSON.parse(body);
         lastHeartbeat = Date.now();
+        lastPacketTime = Date.now();
         latestMatchState.connected = true;
         latestMatchState.rawKeys = Object.keys(data);
 

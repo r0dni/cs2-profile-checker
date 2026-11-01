@@ -1035,3 +1035,46 @@ body.detached #app {
   border-color: #66c0f4;
   background-color: rgba(102, 192, 244, 0.15);
 }
+
+/* v1.2.2 Live player card accordion styles */
+.live-players-list {
+  max-height: 480px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.live-player-card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  padding: 5px 8px !important;
+  margin-bottom: 4px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+.live-player-card:hover {
+  border-color: var(--accent-orange);
+}
+.live-player-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.live-player-expand-icon {
+  font-size: 10px;
+  color: var(--text-secondary);
+  transition: transform 0.2s;
+}
+.live-player-card.expanded .live-player-expand-icon {
+  transform: rotate(180deg);
+}
+.live-player-details {
+  display: none;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  flex-direction: column;
+  gap: 4px;
+}
+.live-player-card.expanded .live-player-details {
+  display: flex;
+}
