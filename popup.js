@@ -824,6 +824,39 @@ document.addEventListener('DOMContentLoaded', async () => {
       statsDiv.textContent = `❤️ ${hp} ${armorIcon}${armor} | 💵 ${money} | 🎯 ${kills}/${deaths}/${assists}`;
 
       const sid = player.steamid || player.steamId;
+      const currentName = player.name;
+
+      if (sid && currentName) {
+        storage.get([sid], (res) => {
+          if (res && res[sid]) {
+            const oldData = res[sid];
+            let existingText = '';
+            let history = [];
+
+            if (typeof oldData === 'string') {
+              existingText = oldData;
+            } else if (oldData && typeof oldData === 'object') {
+              existingText = oldData.text || '';
+              if (Array.isArray(oldData.namesHistory)) {
+                history = [...oldData.namesHistory];
+              } else if (oldData.name) {
+                history = [oldData.name];
+              }
+            }
+
+            if (currentName && !history.includes(currentName)) {
+              history.push(currentName);
+              const noteObj = {
+                text: existingText,
+                lastName: currentName,
+                namesHistory: history,
+                updatedAt: new Date().toISOString()
+              };
+              storage.set({ [sid]: noteObj });
+            }
+          }
+        });
+      }
 
       const headerDiv = document.createElement('div');
       headerDiv.className = 'live-player-header';

@@ -1003,3 +1003,15 @@ body.detached #app {
 .live-player-card:hover {
   border-color: var(--accent-orange) !important;
 }
+
+/* v1.2.2 Nicknames history AKA styles */
+.note-item-aka {
+  font-size: 10px;
+  color: var(--text-secondary);
+  margin-top: 3px;
+  background: var(--bg-primary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+  display: inline-block;
+}
