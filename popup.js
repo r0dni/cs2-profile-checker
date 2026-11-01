@@ -226,8 +226,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       chrome.windows.create({
         url: chrome.runtime.getURL('popup.html'),
         type: 'popup',
-        width: 480,
-        height: 720
+        width: 520, height: 680
       });
       window.close();
     });

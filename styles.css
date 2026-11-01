@@ -958,3 +958,39 @@ body.detached .live-tracker-link {
 #aboutModal.hidden {
   display: none !important;
 }
+
+/* v1.2.2 Scrollbar & detached window layout fixes */
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+body.detached {
+  width: 100vw !important;
+  min-height: 100vh !important;
+  overflow-y: auto;
+}
+body.detached .container,
+body.detached #app {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+  padding: 12px;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 0px;
+}
+::-webkit-scrollbar-track {
+  background: #14151f;
+}
+::-webkit-scrollbar-thumb {
+  background: #333448;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #ff9900;
+}
