@@ -1070,4 +1070,35 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+
+  // Direct click handler for steamProfileBtn
+  const steamProfileBtn = document.getElementById('steamProfileBtn');
+  if (steamProfileBtn) {
+    steamProfileBtn.addEventListener('click', async () => {
+      const rawValue = profileInput ? profileInput.value.trim() : '';
+      if (!rawValue) {
+        errorMsg.classList.remove('hidden');
+        profileInput.classList.add('error');
+        return;
+      }
+
+      if (rawValue.includes('steamcommunity.com')) {
+        errorMsg.classList.add('hidden');
+        profileInput.classList.remove('error');
+        chrome.tabs.create({ url: rawValue });
+        return;
+      }
+
+      const identifier = await resolveToSteamID64(rawValue);
+      if (identifier) {
+        errorMsg.classList.add('hidden');
+        profileInput.classList.remove('error');
+        chrome.tabs.create({ url: `https://steamcommunity.com/profiles/${identifier}` });
+      } else {
+        errorMsg.classList.remove('hidden');
+        profileInput.classList.add('error');
+      }
+    });
+  }
+
 });
