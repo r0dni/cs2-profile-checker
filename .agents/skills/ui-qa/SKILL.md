@@ -150,3 +150,5 @@ node -e "const http = require('http'); const payload = JSON.stringify({ map: { n
 | 6 | XSS & Special characters escaped | [ ] | Никнеймы экранированы |
 | 7 | Layout responsive (<=420px & >420px) | [ ] | Нет переполнений и сломанных сеток |
 | 8 | Passed independent review by @qa-reviewer | [ ] | Вердикт зафиксирован |
+
+- Для оффлайн-тестов UI без запущенного CS2 используй готовый мок-сервер `node tests/mock_server.js` (не создавай временные файлы в корне проекта).
