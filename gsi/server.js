@@ -65,6 +65,15 @@ const server = http.createServer((req, res) => {
           lastMapName = currentMapName;
         }
 
+        // Выход в главное меню CS2: есть data.provider, но нет data.map и data.round
+        if (data.provider && !data.map && !data.round) {
+          sessionPlayers.clear();
+          lastMapObj = null;
+          lastMapName = '';
+          latestMatchState.map = null;
+          latestMatchState.round = null;
+        }
+
         if (data.map) {
           lastMapObj = {
             name: data.map.name || (lastMapObj ? lastMapObj.name : null),
@@ -97,12 +106,12 @@ const server = http.createServer((req, res) => {
           console.log("ALLPLAYERS ARMOR LOG:", Object.values(data.allplayers).map(p => `${p.name}: armor=${p.state?.armor}, helmet=${p.state?.helmet}`));
           Object.entries(data.allplayers).forEach(([steamid, playerData]) => {
             if (steamid && steamid !== 'observer') {
+              const existing = sessionPlayers.get(steamid) || {};
               const pState = playerData.state || {};
-              const armor = typeof pState.armor === 'number' ? pState.armor : (playerData.armor ?? 0);
-              const helmet = Boolean(pState.helmet ?? playerData.helmet);
+              const armor = typeof pState.armor === 'number' ? pState.armor : (playerData.armor ?? existing.armor ?? 0);
+              const helmet = Boolean(pState.helmet ?? playerData.helmet ?? existing.helmet);
               const pStats = playerData.match_stats || {};
 
-              const existing = sessionPlayers.get(steamid) || {};
               sessionPlayers.set(steamid, {
                 steamid: steamid,
                 steamId: steamid,
@@ -122,12 +131,12 @@ const server = http.createServer((req, res) => {
 
         if (data.player && data.player.steamid) {
           const localSteamId = data.player.steamid;
+          const existing = sessionPlayers.get(localSteamId) || {};
           const pState = data.player.state || {};
-          const armor = typeof pState.armor === 'number' ? pState.armor : (data.player.armor ?? 0);
-          const helmet = Boolean(pState.helmet ?? data.player.helmet);
+          const armor = typeof pState.armor === 'number' ? pState.armor : (data.player.armor ?? existing.armor ?? 0);
+          const helmet = Boolean(pState.helmet ?? data.player.helmet ?? existing.helmet);
           const pStats = data.player.match_stats || {};
 
-          const existing = sessionPlayers.get(localSteamId) || {};
           sessionPlayers.set(localSteamId, {
             steamid: localSteamId,
             steamId: localSteamId,

@@ -860,22 +860,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
+  const expandedPlayerIds = new Set();
+
   function renderLiveTeams(players) {
     try {
-      teamTList.innerHTML = '';
-      teamCTList.innerHTML = '';
-
-      const tPlayers = players.filter(p => p.team === 'T');
-      const ctPlayers = players.filter(p => p.team === 'CT');
-
-      if (tPlayers.length === 0) teamTList.innerHTML = '<div class="no-notes">-</div>';
-      if (ctPlayers.length === 0) teamCTList.innerHTML = '<div class="no-notes">-</div>';
-
       const steamIds = players.map(p => p.steamid || p.steamId);
       storage.get(steamIds, (notesMap) => {
         try {
-          tPlayers.forEach(p => renderPlayerCard(p, teamTList, notesMap[p.steamid || p.steamId]));
-          ctPlayers.forEach(p => renderPlayerCard(p, teamCTList, notesMap[p.steamid || p.steamId]));
+          teamTList.innerHTML = '';
+          teamCTList.innerHTML = '';
+
+          const tPlayers = players.filter(p => p.team === 'T');
+          const ctPlayers = players.filter(p => p.team === 'CT');
+
+          if (tPlayers.length === 0) {
+            const noNote = document.createElement('div');
+            noNote.className = 'no-notes';
+            noNote.textContent = '-';
+            teamTList.appendChild(noNote);
+          } else {
+            tPlayers.forEach(p => renderPlayerCard(p, teamTList, notesMap ? notesMap[p.steamid || p.steamId] : null));
+          }
+
+          if (ctPlayers.length === 0) {
+            const noNote = document.createElement('div');
+            noNote.className = 'no-notes';
+            noNote.textContent = '-';
+            teamCTList.appendChild(noNote);
+          } else {
+            ctPlayers.forEach(p => renderPlayerCard(p, teamCTList, notesMap ? notesMap[p.steamid || p.steamId] : null));
+          }
         } catch (e) {
           console.error('GSI Render error:', e);
         }
@@ -885,16 +899,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-    function renderPlayerCard(player, container, noteData) {
+  function renderPlayerCard(player, container, noteData) {
     try {
       const card = document.createElement('div');
       const hp = player.hp !== undefined ? player.hp : 100;
       const isDead = hp === 0;
       card.className = `live-player-card${isDead ? ' dead' : ''}`;
 
+      const sid = player.steamid || player.steamId;
+      if (sid && expandedPlayerIds.has(String(sid))) {
+        card.classList.add('expanded');
+      }
+
       card.addEventListener('click', (e) => {
         if (e.target.closest('.live-tracker-link') || e.target.closest('a')) return;
         card.classList.toggle('expanded');
+        if (sid) {
+          if (card.classList.contains('expanded')) {
+            expandedPlayerIds.add(String(sid));
+          } else {
+            expandedPlayerIds.delete(String(sid));
+          }
+        }
       });
 
       let rawNoteText = '';
@@ -904,17 +930,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         rawNoteText = noteData.text || '';
       }
 
-      let badgesHtml = '';
-      let cleanNoteText = rawNoteText;
-      if (rawNoteText) {
-        customTags.forEach(tag => {
-          if (rawNoteText.includes(tag.name)) {
-            badgesHtml += `<span class="tag-badge" data-color="${tag.color}" style="font-size: 8px; padding: 1px 3px; margin-right: 3px;">${tag.name}</span>`;
-          }
-        });
-      }
-
-      const sid = player.steamid || player.steamId;
       const currentName = sanitizeNickname(player.name);
 
       if (sid && currentName && currentName !== 'No Nickname' && currentName !== 'Invisible Name') {
@@ -958,13 +973,21 @@ document.addEventListener('DOMContentLoaded', async () => {
       const deaths = player.deaths || 0;
       const assists = player.assists || 0;
 
-      // Header row
+      // Header row safely created with DOM elements
       const headerRow = document.createElement('div');
       headerRow.className = 'live-player-header-row';
-      headerRow.innerHTML = `
-        <span class="live-player-name" title="${currentName}">${currentName}</span>
-        <span class="live-player-expand-icon">▼</span>
-      `;
+
+      const nameSpan = document.createElement('span');
+      nameSpan.className = 'live-player-name';
+      nameSpan.title = currentName;
+      nameSpan.textContent = currentName;
+
+      const expandIcon = document.createElement('span');
+      expandIcon.className = 'live-player-expand-icon';
+      expandIcon.textContent = '▼';
+
+      headerRow.appendChild(nameSpan);
+      headerRow.appendChild(expandIcon);
       card.appendChild(headerRow);
 
       // Details container
@@ -977,27 +1000,51 @@ document.addEventListener('DOMContentLoaded', async () => {
       statsDiv.textContent = `❤️ ${hp} ${armorIcon}${armor} | 💵 ${money} | 🎯 ${kills}/${deaths}/${assists}`;
       detailsDiv.appendChild(statsDiv);
 
-      let noteHtml = rawNoteText ? `<div class="live-player-note">${badgesHtml}<span style="margin-left: 2px;">${cleanNoteText}</span></div>` : '';
-      if (noteHtml) {
+      if (rawNoteText) {
         const noteDiv = document.createElement('div');
-        noteDiv.innerHTML = noteHtml;
+        noteDiv.className = 'live-player-note';
+
+        if (Array.isArray(customTags)) {
+          customTags.forEach(tag => {
+            if (rawNoteText.includes(tag.name)) {
+              const badge = document.createElement('span');
+              badge.className = 'tag-badge';
+              badge.setAttribute('data-color', tag.color || '');
+              badge.style.cssText = 'font-size: 8px; padding: 1px 3px; margin-right: 3px;';
+              badge.textContent = tag.name;
+              noteDiv.appendChild(badge);
+            }
+          });
+        }
+
+        const noteTextSpan = document.createElement('span');
+        noteTextSpan.style.marginLeft = '2px';
+        noteTextSpan.textContent = rawNoteText;
+        noteDiv.appendChild(noteTextSpan);
+
         detailsDiv.appendChild(noteDiv);
       }
 
       const trackersDiv = document.createElement('div');
       trackersDiv.className = 'live-player-trackers';
-      trackersDiv.innerHTML = `
-        <button class="live-tracker-link" data-url="https://cstracker.gg/players/${sid}">CST</button>
-        <button class="live-tracker-link" data-url="https://cs2tracker.gg/stats/${sid}">CS2T</button>
-        <button class="live-tracker-link" data-url="https://faceitfinder.com/profile/${sid}">FF</button>
-        <button class="live-tracker-link" data-url="https://csstats.gg/player/${sid}">CSS</button>
-        <button class="live-tracker-link" data-url="https://steamcommunity.com/profiles/${sid}">STM</button>
-      `;
 
-      trackersDiv.querySelectorAll('.live-tracker-link').forEach(btn => {
+      const trackers = [
+        { label: 'CST', url: `https://cstracker.gg/players/${sid}` },
+        { label: 'CS2T', url: `https://cs2tracker.gg/stats/${sid}` },
+        { label: 'FF', url: `https://faceitfinder.com/profile/${sid}` },
+        { label: 'CSS', url: `https://csstats.gg/player/${sid}` },
+        { label: 'STM', url: `https://steamcommunity.com/profiles/${sid}` }
+      ];
+
+      trackers.forEach(tr => {
+        const btn = document.createElement('button');
+        btn.className = 'live-tracker-link';
+        btn.setAttribute('data-url', tr.url);
+        btn.textContent = tr.label;
         btn.addEventListener('click', () => {
-          chrome.tabs.create({ url: btn.getAttribute('data-url') });
+          chrome.tabs.create({ url: tr.url });
         });
+        trackersDiv.appendChild(btn);
       });
 
       detailsDiv.appendChild(trackersDiv);
