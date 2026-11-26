@@ -64,7 +64,13 @@ const i18n = {
     teamCT: "Команда CT",
     noPlayersLive: "Нет данных об игроках",
     mapLabel: "Карта: ",
-    scoreLabel: "Счет: "
+    scoreLabel: "Счет: ",
+    gsiHelperTitle: "GSI сервер не запущен",
+    gsiHelperDesc: "Для работы Live-матча запустите локальный сервер и настройте конфиг игры:",
+    gsiCopyCmdBtn: "📋 Скопировать команду запуска",
+    gsiCopyCmdSuccess: "Скопировано!",
+    gsiDownloadCfgBtn: "📥 Скачать конфиг CS2",
+    gsiInstallPathLabel: "Путь установки:"
   },
   en: {
     appTitle: "CS2 Profile Checker",
@@ -108,7 +114,13 @@ const i18n = {
     teamCT: "Team CT",
     noPlayersLive: "No players data",
     mapLabel: "Map: ",
-    scoreLabel: "Score: "
+    scoreLabel: "Score: ",
+    gsiHelperTitle: "GSI Server is offline",
+    gsiHelperDesc: "To use Live Match, start the local server and set up the game config:",
+    gsiCopyCmdBtn: "📋 Copy Launch Command",
+    gsiCopyCmdSuccess: "Copied!",
+    gsiDownloadCfgBtn: "📥 Download CS2 Config",
+    gsiInstallPathLabel: "Install path:"
   }
 };
 
@@ -121,7 +133,7 @@ const DEFAULT_TAGS = [
 
 const storage = {
   get(keys, callback) {
-    if (chrome.storage.sync) {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
       chrome.storage.sync.get(keys, (res) => {
         if (chrome.runtime.lastError) {
           chrome.storage.local.get(keys, callback);
@@ -129,12 +141,25 @@ const storage = {
           callback(res);
         }
       });
-    } else {
+    } else if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
       chrome.storage.local.get(keys, callback);
+    } else {
+      // Fallback for standalone mock/browser testing
+      const result = {};
+      const keyArr = Array.isArray(keys) ? keys : (typeof keys === 'string' ? [keys] : (keys === null ? Object.keys(localStorage) : Object.keys(keys || {})));
+      keyArr.forEach(k => {
+        try {
+          const item = localStorage.getItem(k);
+          if (item !== null) result[k] = JSON.parse(item);
+        } catch (e) {
+          result[k] = localStorage.getItem(k);
+        }
+      });
+      if (callback) callback(result);
     }
   },
   set(items, callback) {
-    if (chrome.storage.sync) {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
       chrome.storage.sync.set(items, () => {
         if (chrome.runtime.lastError) {
           chrome.storage.local.set(items, callback);
@@ -142,12 +167,19 @@ const storage = {
           callback();
         }
       });
-    } else {
+    } else if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
       chrome.storage.local.set(items, callback);
+    } else {
+      if (items) {
+        Object.entries(items).forEach(([k, v]) => {
+          localStorage.setItem(k, JSON.stringify(v));
+        });
+      }
+      if (callback) callback();
     }
   },
   remove(keys, callback) {
-    if (chrome.storage.sync) {
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.sync) {
       chrome.storage.sync.remove(keys, () => {
         if (chrome.runtime.lastError) {
           chrome.storage.local.remove(keys, callback);
@@ -155,8 +187,12 @@ const storage = {
           callback();
         }
       });
-    } else {
+    } else if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
       chrome.storage.local.remove(keys, callback);
+    } else {
+      const keyArr = Array.isArray(keys) ? keys : [keys];
+      keyArr.forEach(k => localStorage.removeItem(k));
+      if (callback) callback();
     }
   }
 };
@@ -231,6 +267,61 @@ document.addEventListener('DOMContentLoaded', async () => {
   const liveTabBtn = document.getElementById('liveTabBtn');
   const profileScreen = document.getElementById('profileScreen');
   const liveMatchScreen = document.getElementById('liveMatchScreen');
+  const gsiHelperCard = document.getElementById('gsiHelperCard');
+  const gsiCopyCmdBtn = document.getElementById('gsiCopyCmdBtn');
+  const gsiDownloadCfgBtn = document.getElementById('gsiDownloadCfgBtn');
+
+  // GSI Helper Actions
+  if (gsiCopyCmdBtn) {
+    let copyTimer = null;
+    gsiCopyCmdBtn.addEventListener('click', async () => {
+      const cmd = 'node C:\\Users\\Tomahawk\\cs2-profile-checker\\gsi\\server.js';
+      const dict = i18n[currentLang] || i18n.ru;
+      try {
+        await navigator.clipboard.writeText(cmd);
+        gsiCopyCmdBtn.textContent = dict.gsiCopyCmdSuccess || 'Скопировано!';
+        if (copyTimer) clearTimeout(copyTimer);
+        copyTimer = setTimeout(() => {
+          gsiCopyCmdBtn.textContent = dict.gsiCopyCmdBtn || '📋 Скопировать команду запуска';
+        }, 2000);
+      } catch (err) {
+        console.error('Failed to copy launch command:', err);
+      }
+    });
+  }
+
+  if (gsiDownloadCfgBtn) {
+    gsiDownloadCfgBtn.addEventListener('click', () => {
+      const cfgContent = '"CS2 Profile Checker GSI"\n' +
+        '{\n' +
+        '  "uri"                  "http://127.0.0.1:3000"\n' +
+        '  "timeout"              "5.0"\n' +
+        '  "buffer"               "0.1"\n' +
+        '  "throttle"             "0.2"\n' +
+        '  "heartbeat"            "10.0"\n' +
+        '  "data"\n' +
+        '  {\n' +
+        '    "provider"           "1"\n' +
+        '    "map"                "1"\n' +
+        '    "round"              "1"\n' +
+        '    "player_id"          "1"\n' +
+        '    "player_state"       "1"\n' +
+        '    "allplayers_id"      "1"\n' +
+        '    "allplayers_state"   "1"\n' +
+        '    "allplayers_match_stats" "1"\n' +
+        '  }\n' +
+        '}\n';
+      const blob = new Blob([cfgContent], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'gamestate_integration_checker.cfg';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  }
 
   // Live match elements
   const gsiIndicator = document.getElementById('gsiIndicator');
@@ -484,6 +575,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
 
       playerNote.value = currentText;
+      if (currentText.trim()) {
+        playerNote.classList.add('expanded');
+      } else {
+        playerNote.classList.remove('expanded');
+      }
 
       if (!currentLastName && /^\d{17}$/.test(identifier)) {
         try {
@@ -603,7 +699,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  playerNote.addEventListener('focus', () => {
+    playerNote.classList.add('expanded');
+  });
+
+  playerNote.addEventListener('blur', () => {
+    if (!playerNote.value.trim()) {
+      playerNote.classList.remove('expanded');
+    }
+  });
+
   playerNote.addEventListener('input', async () => {
+    if (playerNote.value.trim()) {
+      playerNote.classList.add('expanded');
+    }
     const dict = i18n[currentLang] || i18n.ru;
     const identifier = await resolveToSteamID64(profileInput.value);
     if (!identifier) {
@@ -654,6 +763,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   deleteNoteBtn.addEventListener('click', async () => {
     const dict = i18n[currentLang] || i18n.ru;
     const identifier = await resolveToSteamID64(profileInput.value);
+    playerNote.classList.remove('expanded');
     if (!identifier) {
       playerNote.value = '';
       noteStatus.textContent = '';
@@ -662,6 +772,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     storage.remove(identifier, () => {
       playerNote.value = '';
+      playerNote.classList.remove('expanded');
       noteStatus.textContent = dict.deletedStatus;
       setTimeout(() => {
         if (noteStatus.textContent === dict.deletedStatus) {
@@ -826,6 +937,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       if (data && data.connected) {
         gsiIndicator.className = 'gsi-dot connected';
         gsiStatusText.textContent = dict.gsiConnected;
+        if (gsiHelperCard) gsiHelperCard.classList.add('hidden');
         if (debugInfo) {
           debugInfo.textContent = `Players: ${(data.players || []).length} | GSI Keys: ${(data.rawKeys || []).join(', ')}`;
         }
@@ -847,6 +959,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         matchInfoCard.classList.add('hidden');
         teamTList.innerHTML = `<div class="no-notes">${dict.noPlayersLive}</div>`;
         teamCTList.innerHTML = `<div class="no-notes">${dict.noPlayersLive}</div>`;
+        if (gsiHelperCard) gsiHelperCard.classList.add('hidden');
       }
     } catch (e) {
       gsiIndicator.className = 'gsi-dot disconnected';
@@ -857,6 +970,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       matchInfoCard.classList.add('hidden');
       teamTList.innerHTML = `<div class="no-notes">${dict.noPlayersLive}</div>`;
       teamCTList.innerHTML = `<div class="no-notes">${dict.noPlayersLive}</div>`;
+      if (gsiHelperCard) gsiHelperCard.classList.remove('hidden');
     }
   }
 

@@ -66,20 +66,18 @@
           <div id="tagsContainer" class="tags-container">
             <!-- Dynamically rendered tags -->
           </div>
-          <textarea id="playerNote" rows="3" placeholder="Заметка по игроку (подозрение в софте, твинк...)"></textarea>
+          <textarea id="playerNote" rows="2" placeholder="Заметка по игроку (подозрение в софте, твинк...)"></textarea>
           <div class="note-footer">
             <span id="noteStatus" class="note-status"></span>
             <button id="deleteNoteBtn" class="delete-btn" data-i18n="deleteNoteBtn">Удалить заметку</button>
           </div>
         </div>
 
-        <div class="data-actions">
+        <div class="data-actions-row">
           <button id="exportBtn" class="data-btn" data-i18n="exportBtn">📥 Экспорт</button>
           <button id="importBtn" class="data-btn" data-i18n="importBtn">📤 Импорт</button>
+          <button id="viewAllNotesBtn" class="data-btn" data-i18n="viewAllNotesBtn">📋 Все заметки</button>
           <input type="file" id="importFileInput" accept=".json" style="display: none;">
-        </div>
-        <div class="viewer-action">
-          <button id="viewAllNotesBtn" class="data-btn full-width" data-i18n="viewAllNotesBtn">📋 Все заметки</button>
         </div>
       </div>
 
@@ -90,6 +88,23 @@
           <span id="gsiStatusText" data-i18n="gsiWaiting">Ожидание подключения к GSI (порт 3000)...</span>
         </div>
         <div id="debugInfo" style="font-size: 11px; color: #888; margin-top: 5px;"></div>
+
+        <!-- GSI Helper Guide Card -->
+        <div id="gsiHelperCard" class="gsi-helper-card hidden">
+          <div class="gsi-helper-header">
+            <span class="gsi-helper-icon">⚠️</span>
+            <span class="gsi-helper-title" data-i18n="gsiHelperTitle">GSI сервер не запущен</span>
+          </div>
+          <div class="gsi-helper-desc" data-i18n="gsiHelperDesc">Для работы Live-матча запустите локальный сервер и настройте конфиг игры:</div>
+          <div class="gsi-helper-actions">
+            <button id="gsiCopyCmdBtn" type="button" class="gsi-helper-btn primary" data-i18n="gsiCopyCmdBtn">📋 Скопировать команду запуска</button>
+            <button id="gsiDownloadCfgBtn" type="button" class="gsi-helper-btn secondary" data-i18n="gsiDownloadCfgBtn">📥 Скачать конфиг CS2</button>
+          </div>
+          <div class="gsi-helper-path">
+            <span class="path-label" data-i18n="gsiInstallPathLabel">Путь установки:</span>
+            <code class="path-code">...\game\csgo\cfg\</code>
+          </div>
+        </div>
         
         <div id="matchInfoCard" class="match-info-card hidden">
           <div class="match-info-row">

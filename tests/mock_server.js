@@ -26,7 +26,7 @@ const mockChrome = `<script>
 const server = http.createServer((req, res) => {
   const cleanUrl = req.url.split('?')[0];
   const relativePath = cleanUrl === '/' ? 'popup.html' : cleanUrl.replace(/^\//, '');
-  const filePath = path.join(__dirname, relativePath);
+  const filePath = path.join(__dirname, '..', relativePath);
 
   if (!fs.existsSync(filePath)) {
     res.writeHead(404);
