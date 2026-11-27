@@ -1,4 +1,75 @@
 
+  /**
+   * Fetch /player-info from local GSI server and render info badges into container.
+   * Returns the parsed data object or null if unavailable.
+   * Silent on failure (server may be offline).
+   */
+  async function fetchPlayerInfoBadges(steamId, badgesContainer) {
+    if (!steamId || !/^\d{17}$/.test(steamId)) return null;
+    try {
+      const ctrl = new AbortController();
+      const tid = setTimeout(() => ctrl.abort(), 3500);
+      const res = await fetch(`http://127.0.0.1:3000/player-info?steamid=${steamId}`, {
+        signal: ctrl.signal
+      });
+      clearTimeout(tid);
+      if (!res.ok) return null;
+      const info = await res.json();
+      if (!info || !info.ok) return null;
+
+      // Render badges into supplied container
+      if (badgesContainer) {
+        badgesContainer.innerHTML = '';
+
+        // Privacy badge
+        if (info.privacyState && info.privacyState !== 'public') {
+          const b = document.createElement('span');
+          b.className = 'pi-badge pi-badge--muted';
+          b.textContent = '🔒 Профиль скрыт';
+          badgesContainer.appendChild(b);
+        }
+
+        // VAC badge
+        const vacBadge = document.createElement('span');
+        if (info.vacBanned === 1) {
+          vacBadge.className = 'pi-badge pi-badge--danger';
+          vacBadge.textContent = '🚫 VAC BAN';
+        } else {
+          vacBadge.className = 'pi-badge pi-badge--success';
+          vacBadge.textContent = '✅ VAC: Чисто';
+        }
+        badgesContainer.appendChild(vacBadge);
+
+        // Account age badge
+        if (info.memberSince) {
+          const yearMatch = String(info.memberSince).match(/\d{4}/);
+          const yearStr = yearMatch ? yearMatch[0] : info.memberSince;
+          const b = document.createElement('span');
+          b.className = 'pi-badge pi-badge--info';
+          b.textContent = `📅 Акк: ${yearStr}`;
+          badgesContainer.appendChild(b);
+        }
+
+        // CS2 hours badge
+        const hoursB = document.createElement('span');
+        hoursB.className = 'pi-badge pi-badge--info';
+        if (info.cs2Hours !== null && info.cs2Hours !== undefined) {
+          hoursB.textContent = `🎮 ${info.cs2Hours} ч.`;
+        } else if (info.privacyState !== 'public') {
+          hoursB.textContent = '🎮 Часы скрыты';
+        } else {
+          hoursB.textContent = '🎮 CS2: 0 ч.';
+        }
+        badgesContainer.appendChild(hoursB);
+      }
+
+      return info;
+    } catch (e) {
+      // Server offline or request aborted — silent
+      return null;
+    }
+  }
+
   async function fetchSteamNickname(steamId) {
     if (!/^\d{17}$/.test(steamId)) return '';
     try {
@@ -517,10 +588,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     customTags.forEach((tag, index) => {
       const item = document.createElement('div');
       item.className = 'custom-tag-item';
-      item.innerHTML = `
-        <span class="tag-badge" data-color="${tag.color}">${tag.name}</span>
-        <button type="button" class="delete-tag-btn" data-index="${index}">✕</button>
-      `;
+
+      const badge = document.createElement('span');
+      badge.className = 'tag-badge';
+      badge.setAttribute('data-color', tag.color || '');
+      badge.textContent = tag.name;
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.type = 'button';
+      deleteBtn.className = 'delete-tag-btn';
+      deleteBtn.setAttribute('data-index', String(index));
+      deleteBtn.textContent = '✕';
+
+      item.appendChild(badge);
+      item.appendChild(deleteBtn);
       customTagsList.appendChild(item);
     });
 
@@ -558,6 +639,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!identifier) {
       playerNote.value = '';
       noteStatus.textContent = '';
+      // Clear profile-tab player-info badges
+      const piBadgesProfile = document.getElementById('profilePiBadges');
+      if (piBadgesProfile) piBadgesProfile.innerHTML = '';
       return;
     }
     storage.get([identifier], async (result) => {
@@ -579,6 +663,15 @@ document.addEventListener('DOMContentLoaded', async () => {
         playerNote.classList.add('expanded');
       } else {
         playerNote.classList.remove('expanded');
+      }
+
+      // Fetch and render player-info badges in Profile tab
+      if (/^\d{17}$/.test(identifier)) {
+        const piBadgesProfile = document.getElementById('profilePiBadges');
+        if (piBadgesProfile) {
+          piBadgesProfile.innerHTML = '<span class="pi-badge pi-badge--muted">⏳ Загрузка...</span>';
+          fetchPlayerInfoBadges(identifier, piBadgesProfile);
+        }
       }
 
       if (!currentLastName && /^\d{17}$/.test(identifier)) {
@@ -871,18 +964,35 @@ document.addEventListener('DOMContentLoaded', async () => {
           history = Array.isArray(rawItem.namesHistory) ? rawItem.namesHistory : [];
         }
 
-        const nameHeader = lastName ? `<span style="color: #4cd137; font-weight: bold; margin-left: 6px;">(${lastName})</span>` : '';
-        const akaHtml = (history.length > 1) 
-          ? `<div class="note-item-aka" style="font-size: 10px; color: #aaa; margin-top: 3px;">📜 AKA: ${history.join(' ➔ ')}</div>` 
-          : '';
-
         const itemEl = document.createElement('div');
         itemEl.className = 'note-item';
-        itemEl.innerHTML = `
-          <div class="note-item-id" style="color: #ff9900; font-weight: bold;">${key}${nameHeader}</div>
-          <div class="note-item-text" style="color: #ddd; margin-top: 2px;">${noteText}</div>
-          ${akaHtml}
-        `;
+
+        const idDiv = document.createElement('div');
+        idDiv.className = 'note-item-id';
+        idDiv.style.cssText = 'color: #ff9900; font-weight: bold;';
+        idDiv.textContent = key;
+
+        if (lastName) {
+          const nameSpan = document.createElement('span');
+          nameSpan.style.cssText = 'color: #4cd137; font-weight: bold; margin-left: 6px;';
+          nameSpan.textContent = `(${lastName})`;
+          idDiv.appendChild(nameSpan);
+        }
+        itemEl.appendChild(idDiv);
+
+        const textDiv = document.createElement('div');
+        textDiv.className = 'note-item-text';
+        textDiv.style.cssText = 'color: #ddd; margin-top: 2px;';
+        textDiv.textContent = noteText;
+        itemEl.appendChild(textDiv);
+
+        if (history.length > 1) {
+          const akaDiv = document.createElement('div');
+          akaDiv.className = 'note-item-aka';
+          akaDiv.style.cssText = 'font-size: 10px; color: #aaa; margin-top: 3px;';
+          akaDiv.textContent = `📜 AKA: ${history.join(' ➔ ')}`;
+          itemEl.appendChild(akaDiv);
+        }
         itemEl.addEventListener('click', () => {
           profileInput.value = key;
           loadNoteForIdentifier(key);
@@ -1113,6 +1223,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       statsDiv.style.cssText = 'font-size: 10px; color: #aaa; margin: 2px 0;';
       statsDiv.textContent = `❤️ ${hp} ${armorIcon}${armor} | 💵 ${money} | 🎯 ${kills}/${deaths}/${assists}`;
       detailsDiv.appendChild(statsDiv);
+
+      // Player-info badges (VAC, account age, CS2 hours)
+      const piBadgesDiv = document.createElement('div');
+      piBadgesDiv.className = 'pi-badges-row';
+      detailsDiv.appendChild(piBadgesDiv);
+      // Fire async — badges populate when card is expanded
+      if (sid) {
+        fetchPlayerInfoBadges(sid, piBadgesDiv);
+      }
 
       if (rawNoteText) {
         const noteDiv = document.createElement('div');

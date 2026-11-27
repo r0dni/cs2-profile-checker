@@ -1,8 +1,153 @@
 const http = require('http');
+const https = require('https');
 
 const sessionPlayers = new Map();
 let lastMapName = '';
 let lastMapObj = null;
+
+// ─── /player-info cache & dedup ───────────────────────────────────────────────
+const playerInfoCache = new Map();   // steamid → { data, cachedAt }
+const playerInfoPending = new Map(); // steamid → Promise<data>
+const PLAYER_INFO_TTL = 15 * 60 * 1000; // 15 min
+
+/**
+ * Extract the text content of the first XML tag with the given name.
+ * Works without any external XML parser.
+ */
+function extractXmlTag(xml, tag) {
+  const open = `<${tag}>`;
+  const close = `</${tag}>`;
+  const s = xml.indexOf(open);
+  if (s === -1) return null;
+  const e = xml.indexOf(close, s);
+  if (e === -1) return null;
+  // Strip CDATA if present
+  let val = xml.slice(s + open.length, e);
+  val = val.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/, '$1').trim();
+  return val || null;
+}
+
+/**
+ * Fetch a URL with a timeout (ms).  Returns the full response body string.
+ */
+function httpsGet(url, timeoutMs) {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, {
+      headers: {
+        'User-Agent': 'CS2ProfileChecker/1.0 (node.js)',
+        'Accept': 'text/xml,application/xml,text/plain;q=0.9'
+      }
+    }, (res) => {
+      if (res.statusCode !== 200) {
+        res.resume();
+        return reject(new Error(`Steam HTTP ${res.statusCode}`));
+      }
+      let body = '';
+      res.on('data', c => { body += c; });
+      res.on('end', () => resolve(body));
+    });
+    req.setTimeout(timeoutMs, () => { req.destroy(); reject(new Error('timeout')); });
+    req.on('error', reject);
+  });
+}
+
+/**
+ * Fetch and parse Steam profile XML for one steamid64.
+ * Caches results in playerInfoCache; deduplicates concurrent requests via
+ * playerInfoPending.
+ */
+async function fetchPlayerInfo(steamid) {
+  // 1. Cache hit
+  const cached = playerInfoCache.get(steamid);
+  if (cached && Date.now() - cached.cachedAt < PLAYER_INFO_TTL) {
+    return cached.data;
+  }
+
+  // 2. Already in-flight → reuse the same promise
+  if (playerInfoPending.has(steamid)) {
+    return playerInfoPending.get(steamid);
+  }
+
+  // 3. Fire request
+  const promise = (async () => {
+    try {
+      const xml = await httpsGet(
+        `https://steamcommunity.com/profiles/${steamid}/?xml=1`,
+        4000
+      );
+
+      const privacyState  = extractXmlTag(xml, 'privacyState')   || 'unknown';
+      const vacBanned     = parseInt(extractXmlTag(xml, 'vacBanned') || '0', 10);
+      const tradeBanState = extractXmlTag(xml, 'tradeBanState')   || 'None';
+      const memberSince   = extractXmlTag(xml, 'memberSince')     || null;
+
+      // Parse CS2 hours from <mostPlayedGames> block
+      let cs2Hours = null;
+      const gamesBlockMatch = xml.match(/<mostPlayedGames>([\s\S]*?)<\/mostPlayedGames>/);
+      if (gamesBlockMatch) {
+        const gamesBlock = gamesBlockMatch[1];
+        // Split into individual <mostPlayedGame> entries
+        const gameEntries = gamesBlock.match(/<mostPlayedGame>[\s\S]*?<\/mostPlayedGame>/g) || [];
+        for (const entry of gameEntries) {
+          // Check for CS2 appid (730) or gameLink containing /730
+          const gameLink = extractXmlTag(entry, 'gameLink') || '';
+          const appid    = extractXmlTag(entry, 'appID')    || '';
+          if (appid === '730' || gameLink.includes('/730')) {
+            const hours = extractXmlTag(entry, 'hoursOnRecord');
+            if (hours) {
+              // "1,240" or "240.5" → keep as string, normalised
+              cs2Hours = hours.replace(/,/g, '');
+            }
+            break;
+          }
+        }
+      }
+
+      const data = {
+        ok: true,
+        steamid,
+        privacyState,
+        vacBanned,
+        tradeBanState,
+        memberSince,
+        cs2Hours,
+        cachedAt: Date.now()
+      };
+
+      playerInfoCache.set(steamid, { data, cachedAt: Date.now() });
+      return data;
+    } catch (err) {
+      const data = {
+        ok: false,
+        steamid,
+        error: err.message,
+        cachedAt: Date.now()
+      };
+      // Cache errors briefly (30 s) to avoid hammering on network issues
+      playerInfoCache.set(steamid, { data, cachedAt: Date.now() - PLAYER_INFO_TTL + 30000 });
+      return data;
+    } finally {
+      playerInfoPending.delete(steamid);
+    }
+  })();
+
+  playerInfoPending.set(steamid, promise);
+  return promise;
+}
+
+/**
+ * Pre-warm the cache for a list of steamids (fire-and-forget).
+ */
+function prewarmPlayerInfo(steamids) {
+  for (const sid of steamids) {
+    if (!sid || sid === 'observer') continue;
+    const cached = playerInfoCache.get(sid);
+    if (cached && Date.now() - cached.cachedAt < PLAYER_INFO_TTL) continue;
+    if (playerInfoPending.has(sid)) continue;
+    fetchPlayerInfo(sid).catch(() => {}); // intentionally fire-and-forget
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 let latestMatchState = {
   connected: false,
@@ -154,12 +299,36 @@ const server = http.createServer((req, res) => {
 
         latestMatchState.players = Array.from(sessionPlayers.values());
 
+        // Background pre-warm /player-info cache for all session players
+        prewarmPlayerInfo(Array.from(sessionPlayers.keys()));
+
         res.writeHead(200, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ success: true }));
       } catch (e) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: 'Invalid JSON' }));
       }
+    });
+    return;
+  }
+
+  // GET /player-info?steamid=<STEAMID64>
+  if (req.method === 'GET' && req.url.startsWith('/player-info')) {
+    const urlObj = new URL(req.url, 'http://127.0.0.1');
+    const steamid = urlObj.searchParams.get('steamid') || '';
+
+    if (!/^\d{17}$/.test(steamid)) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: 'Invalid steamid' }));
+      return;
+    }
+
+    fetchPlayerInfo(steamid).then(data => {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(data));
+    }).catch(err => {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ ok: false, error: err.message }));
     });
     return;
   }
